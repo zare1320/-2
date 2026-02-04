@@ -8,6 +8,8 @@ export interface Patient {
   breed: string;
   weight: number; // kg
   age: number; // years
+  sex?: string; // 'Male' | 'Female'
+  isSterilized?: boolean;
   
   // Vaccination
   vaccineType?: string;

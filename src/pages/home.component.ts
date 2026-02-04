@@ -102,6 +102,34 @@ import {
               </div>
             </div>
 
+            <!-- New Fields: Gender & Sterilization -->
+            <div class="col-span-1 group">
+              <div class="bg-white dark:bg-slate-800 rounded-t-2xl px-4 pt-3 pb-1 border-b-2 border-slate-200 dark:border-slate-700 focus-within:border-teal-600 dark:focus-within:border-teal-400 transition-colors">
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">جنسیت</label>
+                <div class="relative">
+                    <select [(ngModel)]="sex" class="w-full bg-transparent text-slate-800 dark:text-slate-100 font-medium focus:outline-none appearance-none relative z-10">
+                        <option value="" class="text-slate-400">انتخاب کنید...</option>
+                        <option value="Male" class="text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-800">نر (Male)</option>
+                        <option value="Female" class="text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-800">ماده (Female)</option>
+                    </select>
+                     <i class="fa-solid fa-chevron-down absolute left-0 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 pointer-events-none"></i>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-span-1 group">
+              <div class="bg-white dark:bg-slate-800 rounded-t-2xl px-4 pt-3 pb-1 border-b-2 border-slate-200 dark:border-slate-700 focus-within:border-teal-600 dark:focus-within:border-teal-400 transition-colors">
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">عقیم‌سازی</label>
+                <div class="relative">
+                    <select [ngModel]="isSterilized()" (ngModelChange)="isSterilized.set($event == 'true')" class="w-full bg-transparent text-slate-800 dark:text-slate-100 font-medium focus:outline-none appearance-none relative z-10">
+                        <option [value]="false" class="text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-800">خیر</option>
+                        <option [value]="true" class="text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-800">بله</option>
+                    </select>
+                    <i class="fa-solid fa-chevron-down absolute left-0 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 pointer-events-none"></i>
+                </div>
+              </div>
+            </div>
+
             <!-- Vaccination Section -->
             <div class="col-span-2 space-y-3 pt-2">
                 <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 px-1 flex items-center gap-2">
@@ -280,10 +308,13 @@ import {
 
       <!-- AI Analysis Card -->
       <div class="bg-indigo-50 dark:bg-indigo-950/30 rounded-3xl p-6 border border-indigo-100 dark:border-indigo-900/50">
-        <h2 class="text-xl font-bold text-indigo-900 dark:text-indigo-200 mb-4 flex items-center gap-2">
+        <h2 class="text-xl font-bold text-indigo-900 dark:text-indigo-200 mb-1 flex items-center gap-2">
           <i class="fa-solid fa-wand-magic-sparkles"></i>
           تشخیص هوشمند
         </h2>
+        <p class="text-xs text-indigo-600 dark:text-indigo-300 mb-5 opacity-80 font-medium leading-relaxed">
+           بر اساس نتایج آزمایشگاهی یا عکس‌برداری با استفاده از هوش مصنوعی جمینای
+        </p>
 
         <div class="space-y-4">
           <div class="border-2 border-dashed border-indigo-200 dark:border-indigo-800 bg-white/50 dark:bg-slate-900/50 rounded-2xl p-6 text-center cursor-pointer hover:bg-white dark:hover:bg-slate-800 transition-all relative group">
@@ -316,9 +347,9 @@ import {
           </button>
 
           @if (aiResult()) {
-            <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 text-sm text-slate-700 dark:text-slate-300 leading-relaxed shadow-sm">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 text-sm text-slate-700 dark:text-slate-300 leading-relaxed shadow-sm dir-rtl text-right animate-fade-in">
               <h3 class="font-bold mb-3 text-indigo-600 dark:text-indigo-400 text-lg border-b border-slate-100 dark:border-slate-700 pb-2">نتایج تحلیل</h3>
-              <div [innerHTML]="aiResult() | formatLineBreaks"></div>
+              <div [innerHTML]="aiResult()"></div>
             </div>
           }
         </div>
@@ -349,6 +380,8 @@ export class HomeComponent {
   breed = signal('');
   weight = signal<number | null>(null);
   age = signal<number | null>(null);
+  sex = signal<string>('');
+  isSterilized = signal<boolean>(false);
   
   // Vaccination State
   vaccineType = signal<string>('');
@@ -546,20 +579,145 @@ export class HomeComponent {
     const vacDateStr = this.vacYear() ? `${this.vacYear()}/${this.vacMonth()}/${this.vacDay()}` : 'N/A';
     const dewormDateStr = this.dewormYear() ? `${this.dewormYear()}/${this.dewormMonth()}/${this.dewormDay()}` : 'N/A';
 
-    const prompt = `
-      Analyze this veterinary image. 
-      Identify any visible abnormalities, lesions, or fractures.
-      Suggest differential diagnoses based on visual evidence.
-      The animal is a ${this.species()} ${this.breed() ? ', breed: ' + this.breed() : ''}.
-      Vaccination Status: ${this.vaccineType()} (${this.vaccineStatusMessage()} - Date: ${vacDateStr}).
-      Deworming Status: ${this.dewormerType()} (${this.dewormingStatusMessage()} - Date: ${dewormDateStr}).
-      Clinical signs: ${this.symptoms()}.
-      Respond in Persian (Farsi).
-    `;
+    const systemPrompt = `
+**موقعیت (Situation)**
+شما یک سیستم هوش مصنوعی دامپزشکی تخصصی هستید که در یک برنامه موبایل یا وب یکپارچه شده‌اید. کاربران این برنامه دامپزشکان، تکنسین‌های رادیولوژی دامپزشکی یا متخصصان بهداشت و درمان دامی هستند که نیاز به تحلیل سریع و دقیق تصاویر پزشکی حیوانات دارند.
+
+**وظیفه (Task)**
+دستیار باید تصاویر رادیولوژی و آزمایشگاهی ارسال شده از حیوانات را دریافت، تحلیل و تفسیر کند. سپس باید عوارض، ناهنجاری‌ها یا یافته‌های بالینی قابل مشاهده را شناسایی و گزارش دهد.
+
+**هدف (Objective)**
+هدف ارائه یک تشخیص اولیه دقیق و قابل اعتماد از تصاویر پزشکی حیوانات است تا به تصمیم‌گیری بالینی دامپزشکان کمک کند و فرآیند تشخیص را تسهیل نماید.
+
+**دانش (Knowledge)**
+- دستیار باید انواع تصاویر پزشکی دامپزشکی شامل اشعه ایکس (X-Ray)، سی‌تی اسکن (CT Scan)، ام‌آر‌آی (MRI)، سونوگرافی (Ultrasound)، و تصاویر میکروسکوپی آزمایشگاهی را تشخیص دهد
+- دستیار باید ساختارهای آناتومیک طبیعی گونه‌های مختلف حیوانات (سگ، گربه، اسب، گاو، پرندگان و سایر حیوانات) را از ناهنجاری‌ها تفکیک کند
+- دستیار باید تفاوت‌های آناتومیک و فیزیولوژیک بین گونه‌های مختلف را در نظر بگیرد
+- دستیار باید سطح اطمینان تشخیص خود را مشخص کند (بالا، متوسط، پایین)
+- دستیار باید هشدارهای لازم را در مورد یافته‌های اورژانسی ارائه دهد
+- دستیار باید محدودیت‌های خود را بشناسد و در صورت نیاز به مشاوره دامپزشک متخصص توصیه کند
+- دستیار باید اصطلاحات تخصصی دامپزشکی را به کار برد و تفسیرها را برای دامپزشکان حرفه‌ای ارائه دهد
+
+**دستورالعمل‌های رفتاری**
+1. دستیار باید ابتدا گونه حیوان، نوع تصویر پزشکی (مثلاً رادیوگرافی قفسه سینه، سی‌تی اسکن مغز) و ناحیه آناتومیک را شناسایی کند
+2. دستیار باید کیفیت تصویر را ارزیابی کند و در صورت نامناسب بودن، درخواست تصویر با کیفیت بهتر نماید
+3. دستیار باید یافته‌های طبیعی و غیرطبیعی را با در نظر گرفتن ویژگی‌های خاص گونه مورد نظر به صورت جداگانه فهرست کند
+4. دستیار باید برای هر عارضه یا ناهنجاری شناسایی شده، توضیحات بالینی دامپزشکی مختصر و تخصصی ارائه دهد
+5. دستیار باید خروجی را در قالب JSON ساختاریافته با فیلدهای زیر ارائه دهد:
+   - animal_species: گونه حیوان
+   - image_type: نوع تصویر
+   - anatomical_region: ناحیه آناتومیک
+   - image_quality: کیفیت تصویر (عالی/خوب/متوسط/ضعیف)
+   - normal_findings: یافته‌های طبیعی (لیست رشته)
+   - abnormal_findings: آرایه‌ای از عوارض شامل (finding، description، severity، confidence_level)
+   - urgent_flags: هشدارهای فوری (true/false)
+   - recommendations: توصیه‌های بالینی دامپزشکی (لیست رشته)
+   - limitations: محدودیت‌های تشخیص
+
+**محدودیت‌ها و ملاحظات**
+- دستیار نباید به جای دامپزشک تصمیم نهایی بگیرد بلکه باید به عنوان ابزار کمکی عمل کند
+- دستیار باید در صورت عدم اطمینان کافی (کمتر از 70%)، صراحتاً به نیاز مشاوره دامپزشک متخصص اشاره کند
+- دستیار باید از ارائه تشخیص قطعی در موارد پیچیده یا مبهم خودداری کند
+- دستیار باید رعایت اصول اخلاق حرفه‌ای دامپزشکی و حفظ حریم خصوصی اطلاعات بیمار (حیوان و مالک) را در اولویت قرار دهد
+
+تمام خروجی های متنی داخل JSON باید به زبان فارسی باشد.
+`;
+
+    const patientContext = `
+اطلاعات بیمار:
+گونه: ${this.species()}
+نژاد: ${this.breed() || 'نامشخص'}
+جنسیت: ${this.sex() === 'Male' ? 'نر' : this.sex() === 'Female' ? 'ماده' : 'نامشخص'}
+وضعیت عقیم‌سازی: ${this.isSterilized() ? 'عقیم شده' : 'عقیم نشده'}
+سن: ${this.age() || 'نامشخص'}
+وزن: ${this.weight() || 'نامشخص'} kg
+وضعیت واکسیناسیون: ${this.vaccineType()} (${this.vaccineStatusMessage()} - Date: ${vacDateStr})
+وضعیت انگل‌تراپی: ${this.dewormerType()} (${this.dewormingStatusMessage()} - Date: ${dewormDateStr})
+علائم بالینی: ${this.symptoms()}
+
+لطفا تصویر را تحلیل کنید و خروجی JSON را تولید نمایید.
+`;
+
+    const fullPrompt = systemPrompt + "\n" + patientContext;
     
-    const result = await this.gemini.analyzeImage(this.imagePreview()!, prompt);
-    this.aiResult.set(result);
-    this.isLoading.set(false);
+    try {
+        const result = await this.gemini.analyzeImage(this.imagePreview()!, fullPrompt);
+        this.aiResult.set(this.formatAiResult(result));
+    } catch(e) {
+        this.aiResult.set('خطا در تحلیل تصویر.');
+    } finally {
+        this.isLoading.set(false);
+    }
+  }
+
+  formatAiResult(rawText: string): string {
+    try {
+      let jsonStr = rawText;
+      // remove markdown code blocks
+      jsonStr = jsonStr.replace(/```json/g, '').replace(/```/g, '').trim();
+      
+      const data = JSON.parse(jsonStr);
+      
+      let html = '';
+      
+      if (data.urgent_flags) {
+        html += `<div class="bg-red-50 text-red-700 p-3 rounded-xl mb-4 border border-red-200 font-bold flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation"></i> هشدار فوری: وضعیت نیازمند توجه ویژه است.</div>`;
+      }
+
+      html += `<div class="grid grid-cols-2 gap-2 mb-4 text-xs">
+        <div class="bg-slate-50 dark:bg-slate-700 p-2 rounded-lg"><strong class="text-slate-500 dark:text-slate-400">گونه:</strong> ${data.animal_species}</div>
+        <div class="bg-slate-50 dark:bg-slate-700 p-2 rounded-lg"><strong class="text-slate-500 dark:text-slate-400">تصویر:</strong> ${data.image_type}</div>
+        <div class="bg-slate-50 dark:bg-slate-700 p-2 rounded-lg"><strong class="text-slate-500 dark:text-slate-400">ناحیه:</strong> ${data.anatomical_region}</div>
+        <div class="bg-slate-50 dark:bg-slate-700 p-2 rounded-lg"><strong class="text-slate-500 dark:text-slate-400">کیفیت:</strong> ${data.image_quality}</div>
+      </div>`;
+
+      if (data.abnormal_findings && data.abnormal_findings.length > 0) {
+        html += `<h4 class="font-bold text-red-600 dark:text-red-400 mb-2 border-b border-red-100 dark:border-red-900/30 pb-1">یافته‌های غیرطبیعی:</h4><ul class="space-y-3 mb-4">`;
+        data.abnormal_findings.forEach((item: any) => {
+           html += `<li class="bg-red-50 dark:bg-red-900/10 p-3 rounded-xl border border-red-100 dark:border-red-900/30">
+              <div class="flex justify-between items-center mb-1">
+                 <span class="font-bold text-red-800 dark:text-red-200">${item.finding}</span>
+                 <span class="text-[10px] px-2 py-0.5 rounded-full ${this.getSeverityClass(item.severity)}">${item.severity}</span>
+              </div>
+              <p class="text-xs text-slate-700 dark:text-slate-300 mb-2 leading-relaxed">${item.description}</p>
+              <div class="text-[10px] text-slate-400 text-left dir-ltr">Confidence: ${item.confidence_level}</div>
+           </li>`;
+        });
+        html += `</ul>`;
+      } else {
+         html += `<p class="text-green-600 dark:text-green-400 font-bold mb-4 flex items-center gap-2"><i class="fa-solid fa-check-circle"></i> هیچ یافته غیرطبیعی واضحی مشاهده نشد.</p>`;
+      }
+
+      if (data.normal_findings && data.normal_findings.length > 0) {
+        html += `<h4 class="font-bold text-teal-600 dark:text-teal-400 mb-2 border-b border-teal-100 dark:border-teal-900/30 pb-1">یافته‌های طبیعی:</h4><ul class="list-disc list-inside mb-4 text-xs text-slate-700 dark:text-slate-300 space-y-1">`;
+        data.normal_findings.forEach((f: string) => html += `<li>${f}</li>`);
+        html += `</ul>`;
+      }
+
+      if (data.recommendations && data.recommendations.length > 0) {
+         html += `<h4 class="font-bold text-blue-600 dark:text-blue-400 mb-2 border-b border-blue-100 dark:border-blue-900/30 pb-1">توصیه‌ها:</h4><ul class="list-decimal list-inside mb-4 text-xs text-slate-700 dark:text-slate-300 space-y-1">`;
+         data.recommendations.forEach((r: string) => html += `<li>${r}</li>`);
+         html += `</ul>`;
+      }
+
+      if (data.limitations) {
+         html += `<div class="text-[10px] text-slate-400 mt-4 border-t border-slate-100 dark:border-slate-700 pt-2 leading-relaxed"><strong>محدودیت‌ها:</strong> ${data.limitations}</div>`;
+      }
+
+      return html;
+
+    } catch (e) {
+      console.error("JSON Parse Error", e);
+      return rawText.replace(/\n/g, '<br>');
+    }
+  }
+
+  getSeverityClass(severity: string): string {
+     if (!severity) return 'bg-slate-200 text-slate-800';
+     const s = severity.toLowerCase();
+     if (s.includes('high') || s.includes('severe') || s.includes('شدید')) return 'bg-red-200 text-red-900';
+     if (s.includes('medium') || s.includes('moderate') || s.includes('متوسط')) return 'bg-orange-200 text-orange-900';
+     return 'bg-green-200 text-green-900';
   }
 
   savePatient() {
@@ -583,6 +741,8 @@ export class HomeComponent {
       breed: this.breed(),
       weight: this.weight()!,
       age: this.age() || 0,
+      sex: this.sex(),
+      isSterilized: this.isSterilized(),
       
       vaccineType: this.vaccineType(),
       vaccinationDate: vacDateStr,
