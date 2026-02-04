@@ -1,484 +1,523 @@
 import { Component, inject, signal, computed } from '@angular/core';
 import { VetStoreService } from '../services/vet-store.service';
 import { FormsModule } from '@angular/forms';
-import { NgClass, DecimalPipe } from '@angular/common';
+import { NgClass, DecimalPipe, NgTemplateOutlet, NgStyle } from '@angular/common';
 import { Router } from '@angular/router';
 import { drugDatabase, DrugEntry } from '../data/drug-database';
 
 @Component({
   selector: 'app-calculators',
   template: `
-    <div class="space-y-4 animate-fade-in pb-28">
+    <div class="pb-28 animate-fade-in relative min-h-screen">
       
-      <!-- Quick Info from Store -->
-      @if (store.currentPatient()) {
-        <div class="bg-blue-100 dark:bg-blue-900/40 border border-blue-200 dark:border-blue-800 p-4 rounded-3xl text-sm text-blue-900 dark:text-blue-200 mb-6 flex justify-between items-center shadow-sm">
-          <div class="flex items-center gap-3">
-             <div class="w-10 h-10 bg-blue-200 dark:bg-blue-800 rounded-full flex items-center justify-center">
-               @switch (store.currentPatient()?.species) {
-                  @case('dog') { <i class="fa-solid fa-dog text-lg"></i> }
-                  @case('cat') { <i class="fa-solid fa-cat text-lg"></i> }
-                  @case('bird') { <i class="fa-solid fa-dove text-lg"></i> }
-                  @case('reptile') { <i class="fa-solid fa-staff-snake text-lg"></i> }
-                  @case('aquatic') { <i class="fa-solid fa-fish text-lg"></i> }
-                  @case('amphibian') { <i class="fa-solid fa-frog text-lg"></i> }
-                  @case('horse') { <i class="fa-solid fa-horse text-lg"></i> }
-                  @case('cow') { <i class="fa-solid fa-cow text-lg"></i> }
-                  @default { <i class="fa-solid fa-paw text-lg"></i> }
-               }
-             </div>
-             <div>
-                <p class="font-bold text-base">{{ store.currentPatient()?.name }}</p>
-                <p class="opacity-70">{{ store.currentPatient()?.weight }} kg</p>
-             </div>
+      <!-- MAIN MENU LIST -->
+      @if (!activeTool()) {
+        <div class="space-y-4 animate-slide-up">
+          
+           <!-- Quick Info from Store -->
+          @if (store.currentPatient()) {
+            <div class="bg-blue-100 dark:bg-blue-900/40 border border-blue-200 dark:border-blue-800 p-4 rounded-3xl text-sm text-blue-900 dark:text-blue-200 mb-6 flex justify-between items-center shadow-sm">
+              <div class="flex items-center gap-3">
+                 <div class="w-10 h-10 bg-blue-200 dark:bg-blue-800 rounded-full flex items-center justify-center">
+                   @switch (store.currentPatient()?.species) {
+                      @case('dog') { <i class="fa-solid fa-dog text-lg"></i> }
+                      @case('cat') { <i class="fa-solid fa-cat text-lg"></i> }
+                      @case('bird') { <i class="fa-solid fa-dove text-lg"></i> }
+                      @default { <i class="fa-solid fa-paw text-lg"></i> }
+                   }
+                 </div>
+                 <div>
+                    <p class="font-bold text-base">{{ store.currentPatient()?.name }}</p>
+                    <p class="opacity-70">{{ store.currentPatient()?.weight }} kg</p>
+                 </div>
+              </div>
+              <button (click)="syncWeight()" class="text-xs bg-white dark:bg-blue-800 px-4 py-2 rounded-full font-bold hover:shadow-md transition-all">
+                <i class="fa-solid fa-refresh mr-1"></i> بروزرسانی
+              </button>
+            </div>
+          }
+
+          <!-- Menu Grid -->
+          <div class="grid grid-cols-1 gap-4">
+             <!-- 1. Drug Dose -->
+             <button (click)="openTool('drug')" class="bg-surface-variant dark:bg-surface-darkVariant p-5 rounded-3xl flex items-center justify-between hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors group">
+                <div class="flex items-center gap-4">
+                   <div class="w-12 h-12 rounded-2xl bg-teal-100 dark:bg-teal-900/50 text-teal-600 dark:text-teal-400 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+                      <i class="fa-solid fa-pills"></i>
+                   </div>
+                   <div class="text-start">
+                      <h3 class="font-bold text-lg text-slate-800 dark:text-slate-100">محاسبه دوز دارو دستی</h3>
+                      <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">محاسبه حجم تزریق بر اساس دوز و وزن</p>
+                   </div>
+                </div>
+                <i class="fa-solid fa-chevron-left text-slate-400"></i>
+             </button>
+
+             <!-- 2. Anesthesia -->
+             <button (click)="openTool('anes')" class="bg-surface-variant dark:bg-surface-darkVariant p-5 rounded-3xl flex items-center justify-between hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors group">
+                <div class="flex items-center gap-4">
+                   <div class="w-12 h-12 rounded-2xl bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+                      <i class="fa-solid fa-syringe"></i>
+                   </div>
+                   <div class="text-start">
+                      <h3 class="font-bold text-lg text-slate-800 dark:text-slate-100">دوز بیهوشی</h3>
+                      <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">پروتکل‌های القای بیهوشی و آرام‌بخشی</p>
+                   </div>
+                </div>
+                <div class="flex items-center gap-3">
+                   @if (!store.isPremium()) { <i class="fa-solid fa-lock text-slate-400"></i> }
+                   <i class="fa-solid fa-chevron-left text-slate-400"></i>
+                </div>
+             </button>
+
+             <!-- 3. Emergency Drugs -->
+             <button (click)="openTool('emergency')" class="bg-surface-variant dark:bg-surface-darkVariant p-5 rounded-3xl flex items-center justify-between hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors group">
+                <div class="flex items-center gap-4">
+                   <div class="w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+                      <i class="fa-solid fa-heart-pulse"></i>
+                   </div>
+                   <div class="text-start">
+                      <h3 class="font-bold text-lg text-slate-800 dark:text-slate-100">دوز دارو (اورژانس)</h3>
+                      <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">لیست داروهای حیاتی و احیا (CPR)</p>
+                   </div>
+                </div>
+                <div class="flex items-center gap-3">
+                   @if (!store.isPremium()) { <i class="fa-solid fa-lock text-slate-400"></i> }
+                   <i class="fa-solid fa-chevron-left text-slate-400"></i>
+                </div>
+             </button>
+
+             <!-- 4. Calories -->
+             <button (click)="openTool('calories')" class="bg-surface-variant dark:bg-surface-darkVariant p-5 rounded-3xl flex items-center justify-between hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors group">
+                <div class="flex items-center gap-4">
+                   <div class="w-12 h-12 rounded-2xl bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+                      <i class="fa-solid fa-fire"></i>
+                   </div>
+                   <div class="text-start">
+                      <h3 class="font-bold text-lg text-slate-800 dark:text-slate-100">محاسبه کالری (RER/MER)</h3>
+                      <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">نیاز انرژی روزانه بر اساس وضعیت</p>
+                   </div>
+                </div>
+                <div class="flex items-center gap-3">
+                   @if (!store.isPremium()) { <i class="fa-solid fa-lock text-slate-400"></i> }
+                   <i class="fa-solid fa-chevron-left text-slate-400"></i>
+                </div>
+             </button>
+
+             <!-- 5. Toxicity -->
+             <button (click)="openTool('toxicity')" class="bg-surface-variant dark:bg-surface-darkVariant p-5 rounded-3xl flex items-center justify-between hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors group">
+                <div class="flex items-center gap-4">
+                   <div class="w-12 h-12 rounded-2xl bg-yellow-100 dark:bg-yellow-900/50 text-yellow-600 dark:text-yellow-400 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+                      <i class="fa-solid fa-triangle-exclamation"></i>
+                   </div>
+                   <div class="text-start">
+                      <h3 class="font-bold text-lg text-slate-800 dark:text-slate-100">مسمومیت (شکلات)</h3>
+                      <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">ارزیابی سطح خطر مسمومیت</p>
+                   </div>
+                </div>
+                <div class="flex items-center gap-3">
+                   @if (!store.isPremium()) { <i class="fa-solid fa-lock text-slate-400"></i> }
+                   <i class="fa-solid fa-chevron-left text-slate-400"></i>
+                </div>
+             </button>
+             
+             <!-- 6. Glucose -->
+             <button (click)="openTool('glucose')" class="bg-surface-variant dark:bg-surface-darkVariant p-5 rounded-3xl flex items-center justify-between hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors group">
+                <div class="flex items-center gap-4">
+                   <div class="w-12 h-12 rounded-2xl bg-pink-100 dark:bg-pink-900/50 text-pink-600 dark:text-pink-400 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+                      <i class="fa-solid fa-chart-line"></i>
+                   </div>
+                   <div class="text-start">
+                      <h3 class="font-bold text-lg text-slate-800 dark:text-slate-100">منحنی گلوکز</h3>
+                      <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">تفسیر قند خون نادیر و تنظیم انسولین</p>
+                   </div>
+                </div>
+                <div class="flex items-center gap-3">
+                   @if (!store.isPremium()) { <i class="fa-solid fa-lock text-slate-400"></i> }
+                   <i class="fa-solid fa-chevron-left text-slate-400"></i>
+                </div>
+             </button>
+
+             <!-- 7. Converter -->
+             <button (click)="openTool('converter')" class="bg-surface-variant dark:bg-surface-darkVariant p-5 rounded-3xl flex items-center justify-between hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors group">
+                <div class="flex items-center gap-4">
+                   <div class="w-12 h-12 rounded-2xl bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+                      <i class="fa-solid fa-right-left"></i>
+                   </div>
+                   <div class="text-start">
+                      <h3 class="font-bold text-lg text-slate-800 dark:text-slate-100">مبدل واحدها</h3>
+                      <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">تبدیل وزن و دما</p>
+                   </div>
+                </div>
+                <div class="flex items-center gap-3">
+                   @if (!store.isPremium()) { <i class="fa-solid fa-lock text-slate-400"></i> }
+                   <i class="fa-solid fa-chevron-left text-slate-400"></i>
+                </div>
+             </button>
           </div>
-          <button (click)="syncWeight()" class="text-xs bg-white dark:bg-blue-800 px-4 py-2 rounded-full font-bold hover:shadow-md transition-all">
-            <i class="fa-solid fa-refresh mr-1"></i> بروزرسانی
-          </button>
         </div>
       }
 
-      <!-- 1. Free Calculator: Manual Drug Dosage -->
-      <div class="bg-surface-variant dark:bg-surface-darkVariant rounded-3xl overflow-hidden transition-all duration-300" [class.shadow-md]="openSection() === 'drug'">
-        <div class="p-5 flex justify-between items-center cursor-pointer active:bg-black/5 dark:active:bg-white/5" (click)="toggleSection('drug')">
-          <h3 class="font-bold text-lg text-slate-800 dark:text-slate-100 flex items-center gap-3">
-            <div class="w-10 h-10 rounded-full bg-teal-100 dark:bg-teal-900 flex items-center justify-center text-teal-600 dark:text-teal-400">
-              <i class="fa-solid fa-pills"></i>
-            </div>
-            محاسبه دوز دارو دستی
-          </h3>
-          <i class="fa-solid fa-chevron-down transition-transform duration-300 text-slate-400" [class.rotate-180]="openSection() === 'drug'"></i>
-        </div>
-        
-        @if (openSection() === 'drug') {
-          <div class="px-5 pb-6 space-y-4 animate-fade-in">
-             <p class="text-[10px] text-slate-500 font-bold mb-1 opacity-70 uppercase tracking-wide">Enter patient and medication details below</p>
+      <!-- TOOL MODAL / PAGE -->
+      @if (activeTool()) {
+        <div class="fixed inset-0 z-50 bg-surface-light dark:bg-surface-dark overflow-y-auto animate-slide-up pb-20">
+           
+           <!-- Sticky Header -->
+           <div class="sticky top-0 z-40 bg-surface-light/80 dark:bg-surface-dark/80 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-800/50 px-4 py-4 flex items-center gap-3">
+              <button (click)="closeTool()" class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 active:scale-90 transition-transform shadow-sm">
+                 <i class="fa-solid fa-arrow-right"></i>
+              </button>
+              <h2 class="text-lg font-black text-slate-800 dark:text-white flex-1 text-center pr-10">
+                 @switch(activeTool()) {
+                    @case('drug') { محاسبه دوز دارو }
+                    @case('anes') { دوز بیهوشی }
+                    @case('emergency') { دوز دارو (اورژانس) }
+                    @case('calories') { محاسبه کالری }
+                    @case('toxicity') { مسمومیت }
+                    @case('glucose') { منحنی گلوکز }
+                    @case('converter') { مبدل واحدها }
+                 }
+              </h2>
+           </div>
+
+           <div class="p-5 max-w-lg mx-auto">
              
-             <!-- Patient Info Read-only -->
-             <div class="grid grid-cols-2 gap-3">
-                <div class="bg-slate-100 dark:bg-slate-700/50 p-3 rounded-2xl border border-slate-200 dark:border-slate-700">
-                    <label class="text-[9px] font-bold text-slate-400 block mb-1">گونه حیوان</label>
-                    <div class="font-bold text-slate-700 dark:text-slate-200 text-sm flex items-center gap-2">
-                         @switch (store.currentPatient()?.species) {
-                            @case('dog') { <i class="fa-solid fa-dog text-xs"></i> }
-                            @case('cat') { <i class="fa-solid fa-cat text-xs"></i> }
-                            @case('bird') { <i class="fa-solid fa-dove text-xs"></i> }
-                            @default { <i class="fa-solid fa-paw text-xs"></i> }
-                         }
-                        {{ getSpeciesLabel(store.currentPatient()?.species) }}
-                    </div>
-                </div>
-                <div class="bg-slate-100 dark:bg-slate-700/50 p-3 rounded-2xl border border-slate-200 dark:border-slate-700">
-                    <label class="text-[9px] font-bold text-slate-400 block mb-1">نام بیمار</label>
-                    <div class="font-bold text-slate-700 dark:text-slate-200 text-sm">
-                        {{ store.currentPatient()?.name || '---' }}
-                    </div>
-                </div>
-             </div>
-
-             <!-- Smart Drug Search Input -->
-             <div class="relative z-20">
-                <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-teal-500 transition-colors">
-                      <label class="text-[10px] font-bold text-slate-400 uppercase">نام دارو (جستجوی هوشمند)</label>
-                      <div class="flex items-center gap-2">
-                         <i class="fa-solid fa-magnifying-glass text-slate-400"></i>
-                         <input 
-                            [(ngModel)]="searchDrugQuery" 
-                            (ngModelChange)="onDrugSearch($event)"
-                            type="text" 
-                            placeholder="نام فارسی، انگلیسی یا تجاری..." 
-                            class="w-full bg-transparent text-sm font-bold text-slate-800 dark:text-slate-100 focus:outline-none placeholder-slate-300"
-                            autocomplete="off"
-                         >
-                         @if (searchDrugQuery()) {
-                            <button (click)="clearSearch()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-times"></i></button>
-                         }
+             <!-- 1. DRUG TOOL CONTENT -->
+             @if (activeTool() === 'drug') {
+                <div class="space-y-4 animate-fade-in">
+                   <!-- ... (Copying existing Drug content) ... -->
+                   <p class="text-[10px] text-slate-500 font-bold mb-1 opacity-70 uppercase tracking-wide">Enter patient and medication details below</p>
+                   
+                   <!-- Patient Info Read-only -->
+                   <div class="grid grid-cols-2 gap-3">
+                      <div class="bg-slate-100 dark:bg-slate-700/50 p-3 rounded-2xl border border-slate-200 dark:border-slate-700">
+                          <label class="text-[9px] font-bold text-slate-400 block mb-1">گونه حیوان</label>
+                          <div class="font-bold text-slate-700 dark:text-slate-200 text-sm flex items-center gap-2">
+                              {{ getSpeciesLabel(store.currentPatient()?.species) }}
+                          </div>
                       </div>
-                </div>
+                      <div class="bg-slate-100 dark:bg-slate-700/50 p-3 rounded-2xl border border-slate-200 dark:border-slate-700">
+                          <label class="text-[9px] font-bold text-slate-400 block mb-1">نام بیمار</label>
+                          <div class="font-bold text-slate-700 dark:text-slate-200 text-sm">
+                              {{ store.currentPatient()?.name || '---' }}
+                          </div>
+                      </div>
+                   </div>
 
-                <!-- Search Results Dropdown -->
-                @if (drugSearchResults().length > 0) {
-                   <div class="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 max-h-60 overflow-y-auto z-50">
-                      @for (drug of drugSearchResults(); track drug.id) {
-                         <button (click)="selectDrug(drug)" class="w-full text-right p-3 hover:bg-teal-50 dark:hover:bg-slate-700 border-b border-slate-100 dark:border-slate-700/50 last:border-0 transition-colors flex flex-col items-start gap-1">
-                            <div class="flex justify-between w-full">
-                               <span class="font-bold text-slate-800 dark:text-slate-200 text-sm">{{ drug.genericName.fa }}</span>
-                               <span class="text-xs text-slate-500 font-mono">{{ drug.genericName.en }}</span>
+                   <!-- Smart Drug Search Input -->
+                   <div class="relative z-20">
+                      <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-teal-500 transition-colors shadow-sm">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase">نام دارو (جستجوی هوشمند)</label>
+                            <div class="flex items-center gap-2">
+                              <i class="fa-solid fa-magnifying-glass text-slate-400"></i>
+                              <input 
+                                  [(ngModel)]="searchDrugQuery" 
+                                  (ngModelChange)="onDrugSearch($event)"
+                                  type="text" 
+                                  placeholder="نام فارسی، انگلیسی یا تجاری..." 
+                                  class="w-full bg-transparent text-sm font-bold text-slate-800 dark:text-slate-100 focus:outline-none placeholder-slate-300"
+                                  autocomplete="off"
+                              >
+                              @if (searchDrugQuery()) {
+                                  <button (click)="clearSearch()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-times"></i></button>
+                              }
                             </div>
-                            @if(drug.tradeNames.length > 0) {
-                               <span class="text-[10px] text-teal-600 dark:text-teal-400">
-                                  تجاری: {{ drug.tradeNames.join(', ') }}
-                               </span>
+                      </div>
+
+                      @if (drugSearchResults().length > 0) {
+                        <div class="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 max-h-60 overflow-y-auto z-50">
+                            @for (drug of drugSearchResults(); track drug.id) {
+                              <button (click)="selectDrug(drug)" class="w-full text-right p-3 hover:bg-teal-50 dark:hover:bg-slate-700 border-b border-slate-100 dark:border-slate-700/50 last:border-0 transition-colors flex flex-col items-start gap-1">
+                                  <div class="flex justify-between w-full">
+                                    <span class="font-bold text-slate-800 dark:text-slate-200 text-sm">{{ drug.genericName.fa }}</span>
+                                    <span class="text-xs text-slate-500 font-mono">{{ drug.genericName.en }}</span>
+                                  </div>
+                                  @if(drug.tradeNames.length > 0) {
+                                    <span class="text-[10px] text-teal-600 dark:text-teal-400">
+                                        تجاری: {{ drug.tradeNames.join(', ') }}
+                                    </span>
+                                  }
+                              </button>
                             }
-                         </button>
+                        </div>
                       }
                    </div>
-                }
-             </div>
 
-             <div class="grid grid-cols-2 gap-3">
-                <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-teal-500 transition-colors">
-                    <label class="text-[9px] font-bold text-slate-400 uppercase">تاریخ مصرف</label>
-                    <input [(ngModel)]="adminDate" type="date" class="w-full bg-transparent text-sm font-bold text-slate-800 dark:text-slate-100 focus:outline-none placeholder-slate-300">
-                </div>
-                <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-teal-500 transition-colors">
-                    <label class="text-[9px] font-bold text-slate-400 uppercase">تاریخ پیگیری</label>
-                    <input [(ngModel)]="followUpDate" type="date" class="w-full bg-transparent text-sm font-bold text-slate-800 dark:text-slate-100 focus:outline-none placeholder-slate-300">
-                </div>
-             </div>
-
-             <div class="grid grid-cols-2 gap-3">
-                <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-teal-500 transition-colors">
-                    <label class="text-[9px] font-bold text-slate-400 uppercase">زمان دوز بعدی</label>
-                    <input [(ngModel)]="nextDoseTime" type="datetime-local" class="w-full bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none placeholder-slate-300">
-                </div>
-                <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-teal-500 transition-colors">
-                    <label class="text-[9px] font-bold text-slate-400 uppercase">روش مصرف</label>
-                    <select [(ngModel)]="route" class="w-full bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none">
-                        <option value="" disabled selected>انتخاب کنید...</option>
-                        <option value="IV" class="dark:bg-slate-800">وریدی (IV)</option>
-                        <option value="IM" class="dark:bg-slate-800">عضلانی (IM)</option>
-                        <option value="SC" class="dark:bg-slate-800">زیرجلدی (SC)</option>
-                        <option value="PO" class="dark:bg-slate-800">خوراکی (PO)</option>
-                    </select>
-                </div>
-             </div>
-
-             <!-- Calculation Inputs -->
-             <div class="border-t-2 border-dashed border-slate-100 dark:border-slate-700/50 pt-4 grid grid-cols-1 gap-3 relative">
-                <!-- Auto-fill Indicator -->
-                @if (selectedDrugId()) {
-                    <div class="absolute -top-3 right-4 bg-teal-100 text-teal-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-teal-200 shadow-sm animate-fade-in">
-                       <i class="fa-solid fa-magic mr-1"></i> تکمیل خودکار
-                    </div>
-                }
-
-                <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-teal-500 transition-colors">
-                  <label class="text-[10px] font-bold text-slate-400 uppercase">وزن (kg)</label>
-                  <input [(ngModel)]="weightInput" type="number" class="w-full bg-transparent font-mono text-lg font-bold text-slate-800 dark:text-slate-100 focus:outline-none placeholder-slate-300">
-                </div>
-                <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-teal-500 transition-colors">
-                  <label class="text-[10px] font-bold text-slate-400 uppercase">دوز (mg/kg)</label>
-                  <input [(ngModel)]="dosageRate" type="number" class="w-full bg-transparent font-mono text-lg font-bold text-slate-800 dark:text-slate-100 focus:outline-none placeholder-slate-300">
-                </div>
-                <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-teal-500 transition-colors">
-                  <label class="text-[10px] font-bold text-slate-400 uppercase">غلظت (mg/ml)</label>
-                  <input [(ngModel)]="concentration" type="number" class="w-full bg-transparent font-mono text-lg font-bold text-slate-800 dark:text-slate-100 focus:outline-none placeholder-slate-300">
-                </div>
-             </div>
-
-            <div class="bg-teal-600 text-white rounded-3xl p-6 text-center mt-2 relative overflow-hidden shadow-lg shadow-teal-600/30">
-              <div class="absolute -right-10 -top-10 w-32 h-32 bg-white/10 rounded-full"></div>
-              <span class="block text-sm font-medium opacity-80 mb-1">حجم تزریقی</span>
-              <span class="text-4xl font-black font-mono tracking-wider">{{ calculateDrugDose() }} <span class="text-lg">ml</span></span>
-            </div>
-          </div>
-        }
-      </div>
-
-      <!-- 2. Premium: Anesthesia -->
-      <div class="bg-surface-variant dark:bg-surface-darkVariant rounded-3xl overflow-hidden transition-all duration-300" [class.shadow-md]="openSection() === 'anes'">
-        <div class="p-5 flex justify-between items-center cursor-pointer active:bg-black/5 dark:active:bg-white/5" (click)="toggleSection('anes')">
-          <h3 class="font-bold text-lg text-slate-800 dark:text-slate-100 flex items-center gap-3">
-             <div class="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center text-purple-600 dark:text-purple-400">
-               <i class="fa-solid fa-syringe"></i>
-            </div>
-            دوز بیهوشی
-          </h3>
-          <div class="flex items-center gap-2">
-            @if (!store.isPremium()) { <i class="fa-solid fa-lock text-slate-400 text-sm"></i> }
-            <i class="fa-solid fa-chevron-down transition-transform duration-300 text-slate-400" [class.rotate-180]="openSection() === 'anes'"></i>
-          </div>
-        </div>
-
-        @if (openSection() === 'anes') {
-          <div class="px-5 pb-6 animate-fade-in">
-            @if (!store.isPremium()) { <ng-container *ngTemplateOutlet="premiumLock"></ng-container> } 
-            @else {
-              <div class="space-y-4">
-                <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-purple-500 transition-colors">
-                   <label class="text-[10px] font-bold text-slate-400 uppercase">پروتکل</label>
-                   <select [(ngModel)]="anesProtocol" class="w-full bg-transparent text-slate-800 dark:text-slate-100 font-bold focus:outline-none py-1">
-                     <option value="propofol" class="dark:bg-slate-800">Propofol (IV)</option>
-                     <option value="ket_val" class="dark:bg-slate-800">Ketamine + Diazepam</option>
-                     <option value="xylazine" class="dark:bg-slate-800">Xylazine (Sedation)</option>
-                   </select>
-                </div>
-                
-                <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-purple-500 transition-colors">
-                     <label class="text-[10px] font-bold text-slate-400 uppercase">وزن (kg)</label>
-                     <input [(ngModel)]="weightInput" type="number" class="w-full bg-transparent font-mono text-lg font-bold text-slate-800 dark:text-slate-100 focus:outline-none">
-                </div>
-
-                <div class="bg-purple-50 dark:bg-purple-900/30 border border-purple-100 dark:border-purple-800 rounded-2xl p-5">
-                  <h4 class="text-purple-900 dark:text-purple-200 font-bold mb-4 text-sm flex items-center gap-2">
-                    <i class="fa-solid fa-flask"></i> محاسبات دقیق
-                  </h4>
-                  @switch (anesProtocol()) {
-                    @case('propofol') {
-                      <div class="flex justify-between items-center text-sm mb-2 pb-2 border-b border-purple-100 dark:border-purple-800/50">
-                         <span class="text-slate-600 dark:text-slate-300">Propofol 1% (4-6 mg/kg):</span>
-                         <span class="font-mono font-black text-lg text-purple-700 dark:text-purple-300">{{ (weightInput() * 6 / 10).toFixed(2) }} ml</span>
+                   <!-- Date & Time -->
+                   <div class="grid grid-cols-2 gap-3">
+                      <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-teal-500 transition-colors shadow-sm">
+                          <label class="text-[9px] font-bold text-slate-400 uppercase">تاریخ مصرف</label>
+                          <input [(ngModel)]="adminDate" type="date" class="w-full bg-transparent text-sm font-bold text-slate-800 dark:text-slate-100 focus:outline-none placeholder-slate-300">
                       </div>
-                      <p class="text-xs text-slate-500 dark:text-slate-400 bg-white/50 dark:bg-black/20 p-2 rounded-lg">توجه: آهسته تزریق شود (To effect).</p>
-                    }
-                    @case('ket_val') {
-                       <div class="flex justify-between items-center text-sm mb-3">
-                         <span class="text-slate-600 dark:text-slate-300">Ketamine 10%:</span>
-                         <span class="font-mono font-black text-lg text-purple-700 dark:text-purple-300">{{ (weightInput() * 5 / 100).toFixed(2) }} ml</span>
+                      <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-teal-500 transition-colors shadow-sm">
+                          <label class="text-[9px] font-bold text-slate-400 uppercase">تاریخ پیگیری</label>
+                          <input [(ngModel)]="followUpDate" type="date" class="w-full bg-transparent text-sm font-bold text-slate-800 dark:text-slate-100 focus:outline-none placeholder-slate-300">
                       </div>
-                      <div class="flex justify-between items-center text-sm">
-                         <span class="text-slate-600 dark:text-slate-300">Diazepam 5mg/ml:</span>
-                         <span class="font-mono font-black text-lg text-purple-700 dark:text-purple-300">{{ (weightInput() * 0.25 / 5).toFixed(2) }} ml</span>
-                      </div>
-                    }
-                    @case('xylazine') {
-                      <div class="flex justify-between items-center text-sm">
-                         <span class="text-slate-600 dark:text-slate-300">Xylazine 2% (1 mg/kg):</span>
-                         <span class="font-mono font-black text-lg text-purple-700 dark:text-purple-300">{{ (weightInput() * 1 / 20).toFixed(2) }} ml</span>
-                      </div>
-                    }
-                  }
-                </div>
-              </div>
-            }
-          </div>
-        }
-      </div>
+                   </div>
 
-      <!-- 3. Premium: Emergency Drugs -->
-      <div class="bg-surface-variant dark:bg-surface-darkVariant rounded-3xl overflow-hidden transition-all duration-300" [class.shadow-md]="openSection() === 'emergency'">
-        <div class="p-5 flex justify-between items-center cursor-pointer active:bg-black/5 dark:active:bg-white/5" (click)="toggleSection('emergency')">
-          <h3 class="font-bold text-lg text-slate-800 dark:text-slate-100 flex items-center gap-3">
-            <div class="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center text-red-600 dark:text-red-400">
-              <i class="fa-solid fa-heart-pulse"></i>
-            </div>
-            داروهای اورژانسی
-          </h3>
-          <div class="flex items-center gap-2">
-            @if (!store.isPremium()) { <i class="fa-solid fa-lock text-slate-400 text-sm"></i> }
-            <i class="fa-solid fa-chevron-down transition-transform duration-300 text-slate-400" [class.rotate-180]="openSection() === 'emergency'"></i>
-          </div>
-        </div>
-        
-        @if (openSection() === 'emergency') {
-            <div class="px-5 pb-6 animate-fade-in">
-                @if (!store.isPremium()) { <ng-container *ngTemplateOutlet="premiumLock"></ng-container> }
-                @else {
-                    <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-red-500 transition-colors mb-4">
+                   <div class="grid grid-cols-2 gap-3">
+                      <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-teal-500 transition-colors shadow-sm">
+                          <label class="text-[9px] font-bold text-slate-400 uppercase">زمان دوز بعدی</label>
+                          <input [(ngModel)]="nextDoseTime" type="datetime-local" class="w-full bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none placeholder-slate-300">
+                      </div>
+                      <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-teal-500 transition-colors shadow-sm">
+                          <label class="text-[9px] font-bold text-slate-400 uppercase">روش مصرف</label>
+                          <select [(ngModel)]="route" class="w-full bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none">
+                              <option value="" disabled selected>انتخاب کنید...</option>
+                              <option value="IV" class="dark:bg-slate-800">وریدی (IV)</option>
+                              <option value="IM" class="dark:bg-slate-800">عضلانی (IM)</option>
+                              <option value="SC" class="dark:bg-slate-800">زیرجلدی (SC)</option>
+                              <option value="PO" class="dark:bg-slate-800">خوراکی (PO)</option>
+                          </select>
+                      </div>
+                   </div>
+
+                   <!-- Calculation Inputs -->
+                   <div class="border-t-2 border-dashed border-slate-100 dark:border-slate-700/50 pt-4 grid grid-cols-1 gap-3 relative">
+                      @if (selectedDrugId()) {
+                          <div class="absolute -top-3 right-4 bg-teal-100 text-teal-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-teal-200 shadow-sm animate-fade-in">
+                            <i class="fa-solid fa-magic mr-1"></i> تکمیل خودکار
+                          </div>
+                      }
+
+                      <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-teal-500 transition-colors shadow-sm">
                         <label class="text-[10px] font-bold text-slate-400 uppercase">وزن (kg)</label>
-                        <input [(ngModel)]="weightInput" type="number" class="w-full bg-transparent font-mono text-lg font-bold text-slate-800 dark:text-slate-100 focus:outline-none">
-                    </div>
-                    <div class="space-y-2">
-                        @for (drug of emergencyDrugs(); track drug.name) {
-                            <div class="flex justify-between items-center bg-white dark:bg-slate-800 p-4 rounded-2xl border-l-4 border-red-500 shadow-sm">
-                                <div>
-                                    <h4 class="font-bold text-slate-800 dark:text-slate-200">{{ drug.name }}</h4>
-                                    <p class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">{{ drug.dose }}</p>
-                                </div>
-                                <div class="text-right">
-                                    <p class="text-lg font-black font-mono text-red-600 dark:text-red-400">{{ drug.amount }} <span class="text-xs">ml</span></p>
-                                    <p class="text-[10px] text-slate-400 dir-ltr font-mono">{{ drug.conc }}</p>
-                                </div>
-                            </div>
-                        }
-                    </div>
-                }
-            </div>
-        }
-      </div>
+                        <input [(ngModel)]="weightInput" type="number" class="w-full bg-transparent font-mono text-lg font-bold text-slate-800 dark:text-slate-100 focus:outline-none placeholder-slate-300">
+                      </div>
+                      <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-teal-500 transition-colors shadow-sm">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase">دوز (mg/kg)</label>
+                        <input [(ngModel)]="dosageRate" type="number" class="w-full bg-transparent font-mono text-lg font-bold text-slate-800 dark:text-slate-100 focus:outline-none placeholder-slate-300">
+                      </div>
+                      <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-teal-500 transition-colors shadow-sm">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase">غلظت (mg/ml)</label>
+                        <input [(ngModel)]="concentration" type="number" class="w-full bg-transparent font-mono text-lg font-bold text-slate-800 dark:text-slate-100 focus:outline-none placeholder-slate-300">
+                      </div>
+                   </div>
 
-      <!-- 4. Premium: Calorie Calculator -->
-      <div class="bg-surface-variant dark:bg-surface-darkVariant rounded-3xl overflow-hidden transition-all duration-300" [class.shadow-md]="openSection() === 'calories'">
-        <div class="p-5 flex justify-between items-center cursor-pointer active:bg-black/5 dark:active:bg-white/5" (click)="toggleSection('calories')">
-          <h3 class="font-bold text-lg text-slate-800 dark:text-slate-100 flex items-center gap-3">
-             <div class="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900 flex items-center justify-center text-orange-600 dark:text-orange-400">
-               <i class="fa-solid fa-fire"></i>
-            </div>
-            محاسبه کالری (RER/MER)
-          </h3>
-          <div class="flex items-center gap-2">
-            @if (!store.isPremium()) { <i class="fa-solid fa-lock text-slate-400 text-sm"></i> }
-            <i class="fa-solid fa-chevron-down transition-transform duration-300 text-slate-400" [class.rotate-180]="openSection() === 'calories'"></i>
-          </div>
-        </div>
+                  <div class="bg-teal-600 text-white rounded-3xl p-6 text-center mt-2 relative overflow-hidden shadow-lg shadow-teal-600/30">
+                    <div class="absolute -right-10 -top-10 w-32 h-32 bg-white/10 rounded-full"></div>
+                    <span class="block text-sm font-medium opacity-80 mb-1">حجم تزریقی</span>
+                    <span class="text-4xl font-black font-mono tracking-wider">{{ calculateDrugDose() }} <span class="text-lg">ml</span></span>
+                  </div>
+                </div>
+             }
 
-        @if (openSection() === 'calories') {
-          <div class="px-5 pb-6 animate-fade-in">
-             @if (!store.isPremium()) { <ng-container *ngTemplateOutlet="premiumLock"></ng-container> }
-             @else {
-                <div class="space-y-4">
-                     <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-orange-500 transition-colors">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase">وزن (kg)</label>
-                        <input [(ngModel)]="weightInput" type="number" class="w-full bg-transparent font-mono text-lg font-bold text-slate-800 dark:text-slate-100 focus:outline-none">
-                     </div>
-                     
-                     <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-orange-500 transition-colors">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase">وضعیت حیوان</label>
-                        <select [(ngModel)]="calorieFactor" class="w-full bg-transparent text-slate-800 dark:text-slate-100 font-bold focus:outline-none py-1">
-                             <option [value]="1.6" class="dark:bg-slate-800">بالغ عقیم شده (1.6)</option>
-                             <option [value]="1.8" class="dark:bg-slate-800">بالغ عقیم نشده (1.8)</option>
-                             <option [value]="1.2" class="dark:bg-slate-800">کم‌تحرک / چاق (1.2)</option>
-                             <option [value]="1.0" class="dark:bg-slate-800">کاهش وزن (1.0)</option>
-                             <option [value]="3.0" class="dark:bg-slate-800">توله < 4 ماه (3.0)</option>
-                             <option [value]="2.0" class="dark:bg-slate-800">توله > 4 ماه (2.0)</option>
-                        </select>
-                     </div>
-
-                     <div class="grid grid-cols-2 gap-3">
-                        <div class="bg-orange-50 dark:bg-orange-900/30 border border-orange-100 dark:border-orange-800 p-4 rounded-2xl text-center">
-                            <span class="text-xs text-orange-800 dark:text-orange-200 font-bold block mb-1">RER</span>
-                            <span class="text-2xl font-black font-mono text-orange-600 dark:text-orange-400">{{ calculateRER() }}</span>
-                            <span class="text-[10px] text-slate-400 block">kcal/day</span>
+             <!-- 2. ANES TOOL CONTENT -->
+             @if (activeTool() === 'anes') {
+                 <div class="animate-fade-in">
+                    @if (!store.isPremium()) { <ng-container *ngTemplateOutlet="premiumLock"></ng-container> } 
+                    @else {
+                      <div class="space-y-4">
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-purple-500 transition-colors shadow-sm">
+                          <label class="text-[10px] font-bold text-slate-400 uppercase">پروتکل</label>
+                          <select [(ngModel)]="anesProtocol" class="w-full bg-transparent text-slate-800 dark:text-slate-100 font-bold focus:outline-none py-1">
+                            <option value="propofol" class="dark:bg-slate-800">Propofol (IV)</option>
+                            <option value="ket_val" class="dark:bg-slate-800">Ketamine + Diazepam</option>
+                            <option value="xylazine" class="dark:bg-slate-800">Xylazine (Sedation)</option>
+                          </select>
                         </div>
-                        <div class="bg-orange-100 dark:bg-orange-900/50 border border-orange-200 dark:border-orange-700 p-4 rounded-2xl text-center">
-                            <span class="text-xs text-orange-900 dark:text-orange-100 font-bold block mb-1">MER (Daily)</span>
-                            <span class="text-2xl font-black font-mono text-orange-700 dark:text-orange-300">{{ calculateMER() }}</span>
-                            <span class="text-[10px] text-slate-500 dark:text-slate-400 block">kcal/day</span>
+                        
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-purple-500 transition-colors shadow-sm">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase">وزن (kg)</label>
+                            <input [(ngModel)]="weightInput" type="number" class="w-full bg-transparent font-mono text-lg font-bold text-slate-800 dark:text-slate-100 focus:outline-none">
                         </div>
-                     </div>
-                </div>
+
+                        <div class="bg-purple-50 dark:bg-purple-900/30 border border-purple-100 dark:border-purple-800 rounded-2xl p-5 shadow-sm">
+                          <h4 class="text-purple-900 dark:text-purple-200 font-bold mb-4 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-flask"></i> محاسبات دقیق
+                          </h4>
+                          @switch (anesProtocol()) {
+                            @case('propofol') {
+                              <div class="flex justify-between items-center text-sm mb-2 pb-2 border-b border-purple-100 dark:border-purple-800/50">
+                                <span class="text-slate-600 dark:text-slate-300">Propofol 1% (4-6 mg/kg):</span>
+                                <span class="font-mono font-black text-lg text-purple-700 dark:text-purple-300">{{ (weightInput() * 6 / 10).toFixed(2) }} ml</span>
+                              </div>
+                              <p class="text-xs text-slate-500 dark:text-slate-400 bg-white/50 dark:bg-black/20 p-2 rounded-lg">توجه: آهسته تزریق شود (To effect).</p>
+                            }
+                            @case('ket_val') {
+                              <div class="flex justify-between items-center text-sm mb-3">
+                                <span class="text-slate-600 dark:text-slate-300">Ketamine 10%:</span>
+                                <span class="font-mono font-black text-lg text-purple-700 dark:text-purple-300">{{ (weightInput() * 5 / 100).toFixed(2) }} ml</span>
+                              </div>
+                              <div class="flex justify-between items-center text-sm">
+                                <span class="text-slate-600 dark:text-slate-300">Diazepam 5mg/ml:</span>
+                                <span class="font-mono font-black text-lg text-purple-700 dark:text-purple-300">{{ (weightInput() * 0.25 / 5).toFixed(2) }} ml</span>
+                              </div>
+                            }
+                            @case('xylazine') {
+                              <div class="flex justify-between items-center text-sm">
+                                <span class="text-slate-600 dark:text-slate-300">Xylazine 2% (1 mg/kg):</span>
+                                <span class="font-mono font-black text-lg text-purple-700 dark:text-purple-300">{{ (weightInput() * 1 / 20).toFixed(2) }} ml</span>
+                              </div>
+                            }
+                          }
+                        </div>
+                      </div>
+                    }
+                 </div>
              }
-          </div>
-        }
-      </div>
 
-      <!-- 5. Premium: Toxicity Calculator -->
-      <div class="bg-surface-variant dark:bg-surface-darkVariant rounded-3xl overflow-hidden transition-all duration-300" [class.shadow-md]="openSection() === 'toxicity'">
-        <div class="p-5 flex justify-between items-center cursor-pointer active:bg-black/5 dark:active:bg-white/5" (click)="toggleSection('toxicity')">
-          <h3 class="font-bold text-lg text-slate-800 dark:text-slate-100 flex items-center gap-3">
-             <div class="w-10 h-10 rounded-full bg-yellow-100 dark:bg-yellow-900 flex items-center justify-center text-yellow-600 dark:text-yellow-400">
-               <i class="fa-solid fa-triangle-exclamation"></i>
-            </div>
-            مسمومیت (شکلات)
-          </h3>
-          <div class="flex items-center gap-2">
-            @if (!store.isPremium()) { <i class="fa-solid fa-lock text-slate-400 text-sm"></i> }
-            <i class="fa-solid fa-chevron-down transition-transform duration-300 text-slate-400" [class.rotate-180]="openSection() === 'toxicity'"></i>
-          </div>
-        </div>
+             <!-- 3. EMERGENCY TOOL CONTENT -->
+             @if (activeTool() === 'emergency') {
+                 <div class="animate-fade-in">
+                    @if (!store.isPremium()) { <ng-container *ngTemplateOutlet="premiumLock"></ng-container> }
+                    @else {
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-red-500 transition-colors mb-4 shadow-sm">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase">وزن (kg)</label>
+                            <input [(ngModel)]="weightInput" type="number" class="w-full bg-transparent font-mono text-lg font-bold text-slate-800 dark:text-slate-100 focus:outline-none">
+                        </div>
+                        <div class="space-y-3">
+                            @for (drug of emergencyDrugs(); track drug.name) {
+                                <div class="flex justify-between items-center bg-white dark:bg-slate-800 p-4 rounded-2xl border-l-4 border-red-500 shadow-sm">
+                                    <div>
+                                        <h4 class="font-bold text-slate-800 dark:text-slate-200">{{ drug.name }}</h4>
+                                        <p class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">{{ drug.dose }}</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-lg font-black font-mono text-red-600 dark:text-red-400">{{ drug.amount }} <span class="text-xs">ml</span></p>
+                                        <p class="text-[10px] text-slate-400 dir-ltr font-mono">{{ drug.conc }}</p>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                 </div>
+             }
 
-        @if (openSection() === 'toxicity') {
-           <div class="px-5 pb-6 animate-fade-in">
-             @if (!store.isPremium()) { <ng-container *ngTemplateOutlet="premiumLock"></ng-container> }
-             @else {
-                <div class="space-y-4">
-                     <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-yellow-500 transition-colors">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase">وزن (kg)</label>
-                        <input [(ngModel)]="weightInput" type="number" class="w-full bg-transparent font-mono text-lg font-bold text-slate-800 dark:text-slate-100 focus:outline-none">
-                     </div>
-                     <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-yellow-500 transition-colors">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase">نوع شکلات</label>
-                        <select [(ngModel)]="toxinType" class="w-full bg-transparent text-slate-800 dark:text-slate-100 font-bold focus:outline-none py-1">
-                             <option value="white" class="dark:bg-slate-800">شکلات سفید</option>
-                             <option value="milk" class="dark:bg-slate-800">شکلات شیری</option>
-                             <option value="dark" class="dark:bg-slate-800">شکلات تلخ (Semi-sweet)</option>
-                             <option value="baking" class="dark:bg-slate-800">شکلات تخته‌ای تلخ</option>
-                             <option value="cocoa" class="dark:bg-slate-800">پودر کاکائو</option>
-                        </select>
-                     </div>
-                     <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-yellow-500 transition-colors">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase">مقدار مصرف (گرم)</label>
-                        <input [(ngModel)]="toxinAmount" type="number" class="w-full bg-transparent font-mono text-lg font-bold text-slate-800 dark:text-slate-100 focus:outline-none">
-                     </div>
+             <!-- 4. CALORIES TOOL CONTENT -->
+             @if (activeTool() === 'calories') {
+                 <div class="animate-fade-in">
+                     @if (!store.isPremium()) { <ng-container *ngTemplateOutlet="premiumLock"></ng-container> }
+                     @else {
+                        <div class="space-y-4">
+                             <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-orange-500 transition-colors shadow-sm">
+                                <label class="text-[10px] font-bold text-slate-400 uppercase">وزن (kg)</label>
+                                <input [(ngModel)]="weightInput" type="number" class="w-full bg-transparent font-mono text-lg font-bold text-slate-800 dark:text-slate-100 focus:outline-none">
+                             </div>
+                             
+                             <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-orange-500 transition-colors shadow-sm">
+                                <label class="text-[10px] font-bold text-slate-400 uppercase">وضعیت حیوان</label>
+                                <select [(ngModel)]="calorieFactor" class="w-full bg-transparent text-slate-800 dark:text-slate-100 font-bold focus:outline-none py-1">
+                                     <option [value]="1.6" class="dark:bg-slate-800">بالغ عقیم شده (1.6)</option>
+                                     <option [value]="1.8" class="dark:bg-slate-800">بالغ عقیم نشده (1.8)</option>
+                                     <option [value]="1.2" class="dark:bg-slate-800">کم‌تحرک / چاق (1.2)</option>
+                                     <option [value]="1.0" class="dark:bg-slate-800">کاهش وزن (1.0)</option>
+                                     <option [value]="3.0" class="dark:bg-slate-800">توله < 4 ماه (3.0)</option>
+                                     <option [value]="2.0" class="dark:bg-slate-800">توله > 4 ماه (2.0)</option>
+                                </select>
+                             </div>
 
-                     <div class="p-4 rounded-2xl text-center"
-                        [class.bg-green-100]="calculateToxicityLevel() === 'Low'"
-                        [class.text-green-800]="calculateToxicityLevel() === 'Low'"
-                        [class.bg-yellow-100]="calculateToxicityLevel() === 'Moderate'"
-                        [class.text-yellow-800]="calculateToxicityLevel() === 'Moderate'"
-                        [class.bg-red-100]="calculateToxicityLevel() === 'Severe'"
-                        [class.text-red-800]="calculateToxicityLevel() === 'Severe'"
-                     >
-                        <span class="block font-bold text-xs uppercase mb-1">سطح خطر</span>
-                        <span class="text-xl font-black">{{ calculateToxicityLevel() === 'Low' ? 'کم‌خطر' : calculateToxicityLevel() === 'Moderate' ? 'متوسط (نیاز به درمان)' : 'شدید (اورژانسی)' }}</span>
-                     </div>
-                </div>
+                             <div class="grid grid-cols-2 gap-3">
+                                <div class="bg-orange-50 dark:bg-orange-900/30 border border-orange-100 dark:border-orange-800 p-4 rounded-2xl text-center shadow-sm">
+                                    <span class="text-xs text-orange-800 dark:text-orange-200 font-bold block mb-1">RER</span>
+                                    <span class="text-2xl font-black font-mono text-orange-600 dark:text-orange-400">{{ calculateRER() }}</span>
+                                    <span class="text-[10px] text-slate-400 block">kcal/day</span>
+                                </div>
+                                <div class="bg-orange-100 dark:bg-orange-900/50 border border-orange-200 dark:border-orange-700 p-4 rounded-2xl text-center shadow-sm">
+                                    <span class="text-xs text-orange-900 dark:text-orange-100 font-bold block mb-1">MER (Daily)</span>
+                                    <span class="text-2xl font-black font-mono text-orange-700 dark:text-orange-300">{{ calculateMER() }}</span>
+                                    <span class="text-[10px] text-slate-500 dark:text-slate-400 block">kcal/day</span>
+                                </div>
+                             </div>
+                        </div>
+                     }
+                 </div>
+             }
+
+             <!-- 5. TOXICITY TOOL CONTENT -->
+             @if (activeTool() === 'toxicity') {
+                 <div class="animate-fade-in">
+                     @if (!store.isPremium()) { <ng-container *ngTemplateOutlet="premiumLock"></ng-container> }
+                     @else {
+                        <div class="space-y-4">
+                             <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-yellow-500 transition-colors shadow-sm">
+                                <label class="text-[10px] font-bold text-slate-400 uppercase">وزن (kg)</label>
+                                <input [(ngModel)]="weightInput" type="number" class="w-full bg-transparent font-mono text-lg font-bold text-slate-800 dark:text-slate-100 focus:outline-none">
+                             </div>
+                             <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-yellow-500 transition-colors shadow-sm">
+                                <label class="text-[10px] font-bold text-slate-400 uppercase">نوع شکلات</label>
+                                <select [(ngModel)]="toxinType" class="w-full bg-transparent text-slate-800 dark:text-slate-100 font-bold focus:outline-none py-1">
+                                     <option value="white" class="dark:bg-slate-800">شکلات سفید</option>
+                                     <option value="milk" class="dark:bg-slate-800">شکلات شیری</option>
+                                     <option value="dark" class="dark:bg-slate-800">شکلات تلخ (Semi-sweet)</option>
+                                     <option value="baking" class="dark:bg-slate-800">شکلات تخته‌ای تلخ</option>
+                                     <option value="cocoa" class="dark:bg-slate-800">پودر کاکائو</option>
+                                </select>
+                             </div>
+                             <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-yellow-500 transition-colors shadow-sm">
+                                <label class="text-[10px] font-bold text-slate-400 uppercase">مقدار مصرف (گرم)</label>
+                                <input [(ngModel)]="toxinAmount" type="number" class="w-full bg-transparent font-mono text-lg font-bold text-slate-800 dark:text-slate-100 focus:outline-none">
+                             </div>
+
+                             <div class="p-4 rounded-2xl text-center shadow-sm"
+                                [class.bg-green-100]="calculateToxicityLevel() === 'Low'"
+                                [class.text-green-800]="calculateToxicityLevel() === 'Low'"
+                                [class.bg-yellow-100]="calculateToxicityLevel() === 'Moderate'"
+                                [class.text-yellow-800]="calculateToxicityLevel() === 'Moderate'"
+                                [class.bg-red-100]="calculateToxicityLevel() === 'Severe'"
+                                [class.text-red-800]="calculateToxicityLevel() === 'Severe'"
+                             >
+                                <span class="block font-bold text-xs uppercase mb-1">سطح خطر</span>
+                                <span class="text-xl font-black">{{ calculateToxicityLevel() === 'Low' ? 'کم‌خطر' : calculateToxicityLevel() === 'Moderate' ? 'متوسط (نیاز به درمان)' : 'شدید (اورژانسی)' }}</span>
+                             </div>
+                        </div>
+                     }
+                 </div>
+             }
+
+             <!-- 6. GLUCOSE TOOL CONTENT -->
+             @if (activeTool() === 'glucose') {
+                 <div class="animate-fade-in">
+                     @if (!store.isPremium()) { <ng-container *ngTemplateOutlet="premiumLock"></ng-container> }
+                     @else {
+                        <div class="space-y-4">
+                           <p class="text-xs text-slate-500 dark:text-slate-400">تفسیر ساده بر اساس نقطه نادیر (پایین‌ترین قند خون):</p>
+                           <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-pink-500 transition-colors shadow-sm">
+                                <label class="text-[10px] font-bold text-slate-400 uppercase">قند خون نادیر (mg/dL)</label>
+                                <input [(ngModel)]="glucoseNadir" type="number" class="w-full bg-transparent font-mono text-lg font-bold text-slate-800 dark:text-slate-100 focus:outline-none">
+                           </div>
+                           
+                           <div class="bg-pink-50 dark:bg-pink-900/30 border border-pink-100 dark:border-pink-800 p-4 rounded-2xl shadow-sm">
+                              <p class="text-sm font-bold text-pink-900 dark:text-pink-200 leading-relaxed">{{ getGlucoseInterpretation() }}</p>
+                           </div>
+                        </div>
+                     }
+                 </div>
+             }
+
+             <!-- 7. CONVERTER TOOL CONTENT -->
+             @if (activeTool() === 'converter') {
+                 <div class="animate-fade-in">
+                     @if (!store.isPremium()) { <ng-container *ngTemplateOutlet="premiumLock"></ng-container> }
+                     @else {
+                        <div class="grid grid-cols-2 gap-3 mb-4">
+                           <button (click)="convertType.set('weight')" [class.bg-teal-600]="convertType() === 'weight'" [class.text-white]="convertType() === 'weight'" class="py-2 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 transition-colors shadow-sm">وزن (kg/lb)</button>
+                           <button (click)="convertType.set('temp')" [class.bg-teal-600]="convertType() === 'temp'" [class.text-white]="convertType() === 'temp'" class="py-2 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 transition-colors shadow-sm">دما (C/F)</button>
+                        </div>
+                        
+                        <div class="flex items-center gap-4 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm">
+                           <div class="flex-1">
+                              <label class="text-[10px] font-bold text-slate-400 block mb-1">{{ convertType() === 'weight' ? 'کیلوگرم' : 'سانتی‌گراد' }}</label>
+                              <input [ngModel]="convertValue()" (ngModelChange)="updateConvert($event, 'metric')" type="number" class="w-full bg-transparent font-mono text-xl font-bold text-slate-800 dark:text-slate-100 focus:outline-none text-center border-b border-slate-200 dark:border-slate-700 pb-1">
+                           </div>
+                           <i class="fa-solid fa-arrow-right-arrow-left text-slate-400"></i>
+                           <div class="flex-1">
+                              <label class="text-[10px] font-bold text-slate-400 block mb-1">{{ convertType() === 'weight' ? 'پوند' : 'فارنهایت' }}</label>
+                               <input [ngModel]="convertResult()" (ngModelChange)="updateConvert($event, 'imperial')" type="number" class="w-full bg-transparent font-mono text-xl font-bold text-slate-800 dark:text-slate-100 focus:outline-none text-center border-b border-slate-200 dark:border-slate-700 pb-1">
+                           </div>
+                        </div>
+                     }
+                 </div>
              }
            </div>
-        }
-      </div>
-      
-       <!-- 6. Premium: Glucose Curve -->
-      <div class="bg-surface-variant dark:bg-surface-darkVariant rounded-3xl overflow-hidden transition-all duration-300" [class.shadow-md]="openSection() === 'glucose'">
-        <div class="p-5 flex justify-between items-center cursor-pointer active:bg-black/5 dark:active:bg-white/5" (click)="toggleSection('glucose')">
-          <h3 class="font-bold text-lg text-slate-800 dark:text-slate-100 flex items-center gap-3">
-             <div class="w-10 h-10 rounded-full bg-pink-100 dark:bg-pink-900 flex items-center justify-center text-pink-600 dark:text-pink-400">
-               <i class="fa-solid fa-chart-line"></i>
-            </div>
-            منحنی گلوکز
-          </h3>
-          <div class="flex items-center gap-2">
-            @if (!store.isPremium()) { <i class="fa-solid fa-lock text-slate-400 text-sm"></i> }
-            <i class="fa-solid fa-chevron-down transition-transform duration-300 text-slate-400" [class.rotate-180]="openSection() === 'glucose'"></i>
-          </div>
         </div>
-
-        @if (openSection() === 'glucose') {
-           <div class="px-5 pb-6 animate-fade-in">
-             @if (!store.isPremium()) { <ng-container *ngTemplateOutlet="premiumLock"></ng-container> }
-             @else {
-                <div class="space-y-4">
-                   <p class="text-xs text-slate-500 dark:text-slate-400">تفسیر ساده بر اساس نقطه نادیر (پایین‌ترین قند خون):</p>
-                   <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-pink-500 transition-colors">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase">قند خون نادیر (mg/dL)</label>
-                        <input [(ngModel)]="glucoseNadir" type="number" class="w-full bg-transparent font-mono text-lg font-bold text-slate-800 dark:text-slate-100 focus:outline-none">
-                   </div>
-                   
-                   <div class="bg-pink-50 dark:bg-pink-900/30 border border-pink-100 dark:border-pink-800 p-4 rounded-2xl">
-                      <p class="text-sm font-bold text-pink-900 dark:text-pink-200 leading-relaxed">{{ getGlucoseInterpretation() }}</p>
-                   </div>
-                </div>
-             }
-           </div>
-        }
-      </div>
-
-       <!-- 7. Premium: Unit Converter -->
-      <div class="bg-surface-variant dark:bg-surface-darkVariant rounded-3xl overflow-hidden transition-all duration-300" [class.shadow-md]="openSection() === 'converter'">
-        <div class="p-5 flex justify-between items-center cursor-pointer active:bg-black/5 dark:active:bg-white/5" (click)="toggleSection('converter')">
-          <h3 class="font-bold text-lg text-slate-800 dark:text-slate-100 flex items-center gap-3">
-             <div class="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300">
-               <i class="fa-solid fa-right-left"></i>
-            </div>
-            مبدل واحدها
-          </h3>
-          <div class="flex items-center gap-2">
-            @if (!store.isPremium()) { <i class="fa-solid fa-lock text-slate-400 text-sm"></i> }
-            <i class="fa-solid fa-chevron-down transition-transform duration-300 text-slate-400" [class.rotate-180]="openSection() === 'converter'"></i>
-          </div>
-        </div>
-
-        @if (openSection() === 'converter') {
-           <div class="px-5 pb-6 animate-fade-in">
-             @if (!store.isPremium()) { <ng-container *ngTemplateOutlet="premiumLock"></ng-container> }
-             @else {
-                <div class="grid grid-cols-2 gap-3 mb-4">
-                   <button (click)="convertType.set('weight')" [class.bg-teal-600]="convertType() === 'weight'" [class.text-white]="convertType() === 'weight'" class="py-2 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 transition-colors">وزن (kg/lb)</button>
-                   <button (click)="convertType.set('temp')" [class.bg-teal-600]="convertType() === 'temp'" [class.text-white]="convertType() === 'temp'" class="py-2 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 transition-colors">دما (C/F)</button>
-                </div>
-                
-                <div class="flex items-center gap-4 bg-white dark:bg-slate-800 p-4 rounded-2xl">
-                   <div class="flex-1">
-                      <label class="text-[10px] font-bold text-slate-400 block mb-1">{{ convertType() === 'weight' ? 'کیلوگرم' : 'سانتی‌گراد' }}</label>
-                      <input [ngModel]="convertValue()" (ngModelChange)="updateConvert($event, 'metric')" type="number" class="w-full bg-transparent font-mono text-xl font-bold text-slate-800 dark:text-slate-100 focus:outline-none text-center border-b border-slate-200 dark:border-slate-700 pb-1">
-                   </div>
-                   <i class="fa-solid fa-arrow-right-arrow-left text-slate-400"></i>
-                   <div class="flex-1">
-                      <label class="text-[10px] font-bold text-slate-400 block mb-1">{{ convertType() === 'weight' ? 'پوند' : 'فارنهایت' }}</label>
-                       <input [ngModel]="convertResult()" (ngModelChange)="updateConvert($event, 'imperial')" type="number" class="w-full bg-transparent font-mono text-xl font-bold text-slate-800 dark:text-slate-100 focus:outline-none text-center border-b border-slate-200 dark:border-slate-700 pb-1">
-                   </div>
-                </div>
-             }
-           </div>
-        }
-      </div>
+      }
 
     </div>
 
     <!-- Premium Lock Template -->
     <ng-template #premiumLock>
-      <div class="bg-slate-100 dark:bg-slate-800 rounded-2xl p-6 text-center animate-fade-in">
+      <div class="bg-slate-100 dark:bg-slate-800 rounded-2xl p-6 text-center animate-fade-in border border-slate-200 dark:border-slate-700 shadow-sm">
         <div class="w-16 h-16 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
             <i class="fa-solid fa-crown text-3xl text-yellow-500"></i>
         </div>
@@ -492,13 +531,14 @@ import { drugDatabase, DrugEntry } from '../data/drug-database';
       </div>
     </ng-template>
   `,
-  imports: [FormsModule, NgClass, DecimalPipe, NgClass]
+  imports: [FormsModule, NgClass, DecimalPipe, NgTemplateOutlet, NgStyle]
 })
 export class CalculatorsComponent {
   store = inject(VetStoreService);
   router = inject(Router);
   
-  openSection = signal<string>('drug');
+  // Replaces 'openSection' with 'activeTool'
+  activeTool = signal<string | null>(null);
   
   // 1. Drug Dosage
   weightInput = signal<number>(0);
@@ -540,7 +580,7 @@ export class CalculatorsComponent {
     return [
         { name: 'Epinephrine (Low)', dose: '0.01 mg/kg', amount: (w * 0.01).toFixed(2), conc: '1 mg/ml' },
         { name: 'Epinephrine (High)', dose: '0.1 mg/kg', amount: (w * 0.1).toFixed(2), conc: '1 mg/ml' },
-        { name: 'Atropine', dose: '0.04 mg/kg', amount: (w * 0.04 / 0.54).toFixed(2), conc: '0.54 mg/ml' }, // Common 0.54 mg/ml
+        { name: 'Atropine', dose: '0.04 mg/kg', amount: (w * 0.04 / 0.54).toFixed(2), conc: '0.54 mg/ml' }, 
         { name: 'Lidocaine (Dog)', dose: '2 mg/kg', amount: (w * 2 / 20).toFixed(2), conc: '20 mg/ml (2%)' },
         { name: 'Diazepam', dose: '0.5 mg/kg', amount: (w * 0.5 / 5).toFixed(2), conc: '5 mg/ml' }
     ];
@@ -557,8 +597,13 @@ export class CalculatorsComponent {
     }
   }
 
-  toggleSection(sec: string) {
-    this.openSection.set(this.openSection() === sec ? '' : sec);
+  openTool(toolName: string) {
+    this.activeTool.set(toolName);
+    window.scrollTo(0,0); // Scroll to top when opening tool
+  }
+
+  closeTool() {
+    this.activeTool.set(null);
   }
 
   // Helper for species label
@@ -604,23 +649,20 @@ export class CalculatorsComponent {
       // Auto-Fill Logic
       const patientSpecies = this.store.currentPatient()?.species || 'dog';
       
-      // 1. Concentration: Try to find a form, default to first form
+      // 1. Concentration
       if (drug.forms && drug.forms.length > 0) {
           this.concentration.set(drug.forms[0].concentration);
-          // Auto-set route if available
           if (drug.forms[0].routes && drug.forms[0].routes.length > 0) {
               this.route.set(drug.forms[0].routes[0]);
           }
       }
 
-      // 2. Dosage Rate: Look up species dosage
+      // 2. Dosage Rate
       const doseInfo = drug.speciesDosage[patientSpecies];
       if (doseInfo) {
           this.dosageRate.set(doseInfo.avg);
       } else {
-          // Fallback or alert if species not compatible
            console.warn(`No dosage found for species: ${patientSpecies}.`);
-           // Optional: Reset dosage if strict safety is needed, or keep 0
            this.dosageRate.set(0);
       }
   }
@@ -629,7 +671,6 @@ export class CalculatorsComponent {
       this.searchDrugQuery.set('');
       this.drugSearchResults.set([]);
       this.selectedDrugId.set(null);
-      // Reset calculated fields
       this.dosageRate.set(0);
       this.concentration.set(0);
   }

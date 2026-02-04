@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { VetStoreService, Patient } from '../services/vet-store.service';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { NgClass } from '@angular/common';
 
 @Component({
@@ -113,7 +113,7 @@ import { NgClass } from '@angular/common';
       }
     </div>
   `,
-  imports: [NgClass]
+  imports: [NgClass, RouterLink]
 })
 export class ProfileComponent {
   store = inject(VetStoreService);

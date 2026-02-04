@@ -1,149 +1,360 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { VetStoreService, AppTheme } from '../services/vet-store.service';
 import { Router } from '@angular/router';
 import { NgClass } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-settings',
   template: `
-    <div class="space-y-6 animate-fade-in pb-20">
+    <div class="min-h-screen pb-28 animate-fade-in relative">
       
-      <!-- User Profile / Login Section -->
-      @if (store.user()) {
-        <div class="bg-surface-variant dark:bg-surface-darkVariant p-6 rounded-[2rem] flex flex-col items-center justify-center text-center relative overflow-hidden">
-           <div class="absolute top-0 w-full h-24 bg-gradient-to-b from-teal-500/10 to-transparent"></div>
-          
-           <div class="w-24 h-24 rounded-full p-1 bg-white dark:bg-slate-700 shadow-xl mb-4 relative z-10">
-              <div class="w-full h-full rounded-full overflow-hidden bg-slate-200">
-                @if (store.user()?.photoUrl) {
-                    <img [src]="store.user()?.photoUrl" class="w-full h-full object-cover">
-                } @else {
-                    <div class="w-full h-full flex items-center justify-center text-slate-400"><i class="fa-solid fa-user text-3xl"></i></div>
-                }
-              </div>
-           </div>
-           
-           <h2 class="font-black text-2xl text-slate-800 dark:text-white mb-1 relative z-10">{{ store.user()?.displayName }}</h2>
-           <p class="text-sm text-slate-500 dark:text-slate-400 font-mono mb-6 relative z-10">{{ store.user()?.email || store.user()?.phoneNumber }}</p>
-           
-           <button (click)="store.logout()" class="flex items-center gap-2 text-red-500 bg-red-50 dark:bg-red-900/20 px-6 py-3 rounded-full font-bold hover:bg-red-100 dark:hover:bg-red-900/40 transition relative z-10">
-            <i class="fa-solid fa-right-from-bracket"></i> {{ store.t().logout }}
-          </button>
+      <!-- Header -->
+      <header class="sticky top-0 z-10 bg-surface-light/80 dark:bg-surface-dark/80 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-800/50 mb-6">
+        <div class="flex items-center justify-center p-4">
+          <h1 class="text-xl font-black tracking-tight text-slate-800 dark:text-white">{{ store.t().settings }}</h1>
         </div>
-      } @else {
-        <div class="bg-teal-700 text-white p-8 rounded-[2.5rem] flex flex-col items-center text-center shadow-2xl shadow-teal-700/30 relative overflow-hidden">
-          <div class="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
-          <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-teal-400/20 rounded-full blur-2xl"></div>
-          
-          <i class="fa-solid fa-user-shield text-5xl mb-4 drop-shadow-md"></i>
-          <h2 class="font-black text-2xl mb-2">{{ store.t().login_required }}</h2>
-          <p class="text-sm opacity-90 mb-6 px-4 leading-relaxed">{{ store.t().login_msg }}</p>
-          <button (click)="goToLogin()" class="bg-white text-teal-800 px-8 py-4 rounded-full font-black shadow-lg hover:scale-105 active:scale-95 transition-transform w-full">
-            {{ store.t().login_btn }}
-          </button>
+      </header>
+
+      <main class="px-4 space-y-8 max-w-2xl mx-auto">
+        
+        <!-- Profile Section -->
+        @if (store.user()) {
+          <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700/50">
+            <div class="flex items-center gap-4 mb-4">
+              <!-- Avatar -->
+              <div class="shrink-0 w-16 h-16 rounded-full bg-gradient-to-br from-teal-100 to-teal-200 dark:from-teal-900 dark:to-teal-800 flex items-center justify-center text-2xl font-black text-teal-700 dark:text-teal-200 overflow-hidden shadow-inner">
+                 @if (store.user()?.photoUrl) {
+                    <img [src]="store.user()?.photoUrl" class="w-full h-full object-cover">
+                 } @else {
+                    {{ getInitials(store.user()?.displayName) }}
+                 }
+              </div>
+              <!-- Info -->
+              <div class="grow text-start">
+                <h2 class="text-xl font-extrabold text-slate-800 dark:text-white mb-0.5">{{ store.user()?.displayName || 'کاربر' }}</h2>
+                <p class="text-xs font-medium text-slate-500 dark:text-slate-400">{{ store.user()?.email || store.user()?.phoneNumber }}</p>
+                @if (store.user()?.medicalCode) {
+                   <p class="text-[10px] text-slate-400 mt-1 font-mono">Code: {{ store.user()?.medicalCode }}</p>
+                }
+                <span class="inline-block mt-2 px-2 py-0.5 bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 text-[10px] font-bold rounded-md">
+                   {{ store.isPremium() ? 'نسخه حرفه‌ای (DVM)' : 'نسخه رایگان' }}
+                </span>
+              </div>
+            </div>
+            
+            <button 
+              (click)="openEditProfile()" 
+              class="w-full py-3 px-4 rounded-xl bg-teal-600 text-white font-bold text-sm shadow-lg shadow-teal-600/20 hover:bg-teal-700 hover:shadow-teal-600/30 active:scale-[0.98] transition-all"
+            >
+              <i class="fa-solid fa-user-pen mr-2"></i>
+              ویرایش پروفایل
+            </button>
+          </div>
+        } @else {
+          <!-- Login Prompt (If no user) -->
+          <div class="bg-teal-700 rounded-3xl p-6 text-center text-white shadow-xl shadow-teal-700/30 relative overflow-hidden">
+             <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-2xl"></div>
+             <i class="fa-solid fa-shield-cat text-4xl mb-3 relative z-10"></i>
+             <h2 class="text-lg font-black mb-1 relative z-10">{{ store.t().login_required }}</h2>
+             <p class="text-xs opacity-90 mb-4 relative z-10">{{ store.t().login_msg }}</p>
+             <button (click)="router.navigate(['/login'])" class="bg-white text-teal-800 px-6 py-2.5 rounded-full text-sm font-bold shadow-sm hover:scale-105 active:scale-95 transition-transform w-full relative z-10">
+                {{ store.t().login_btn }}
+             </button>
+          </div>
+        }
+
+        <!-- General Settings -->
+        <section>
+          <h3 class="px-2 text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">عمومی</h3>
+          <div class="bg-white dark:bg-slate-800 rounded-3xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-700/50">
+            
+            <!-- Language -->
+            <button (click)="store.toggleLanguage()" class="w-full flex items-center p-4 text-start hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group">
+              <div class="shrink-0 w-10 h-10 flex items-center justify-center bg-blue-50 dark:bg-blue-900/20 rounded-full text-blue-600 dark:text-blue-400">
+                <i class="fa-solid fa-globe"></i>
+              </div>
+              <div class="grow mx-4">
+                <p class="font-bold text-sm text-slate-800 dark:text-slate-100">زبان برنامه</p>
+                <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">تغییر زبان رابط کاربری</p>
+              </div>
+              <div class="flex items-center gap-2 text-slate-400 group-hover:translate-x-1 transition-transform rtl:group-hover:-translate-x-1">
+                 <span class="text-xs font-bold text-slate-600 dark:text-slate-300">{{ store.currentLanguage() === 'fa' ? 'فارسی' : 'English' }}</span>
+                 <i class="fa-solid fa-chevron-left text-xs"></i>
+              </div>
+            </button>
+
+            <div class="border-t border-slate-100 dark:border-slate-700 mx-4"></div>
+
+            <!-- Theme -->
+            <button (click)="cycleTheme()" class="w-full flex items-center p-4 text-start hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group">
+              <div class="shrink-0 w-10 h-10 flex items-center justify-center bg-purple-50 dark:bg-purple-900/20 rounded-full text-purple-600 dark:text-purple-400">
+                <i class="fa-solid fa-circle-half-stroke"></i>
+              </div>
+              <div class="grow mx-4">
+                <p class="font-bold text-sm text-slate-800 dark:text-slate-100">{{ store.t().theme }}</p>
+                <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">حالت شب و روز</p>
+              </div>
+              <div class="flex items-center gap-2 text-slate-400 group-hover:translate-x-1 transition-transform rtl:group-hover:-translate-x-1">
+                 <span class="text-xs font-bold text-slate-600 dark:text-slate-300">
+                    @switch(store.theme()) {
+                        @case('light') { {{ store.t().theme_light }} }
+                        @case('dark') { {{ store.t().theme_dark }} }
+                        @case('system') { {{ store.t().theme_system }} }
+                    }
+                 </span>
+                 <i class="fa-solid fa-chevron-left text-xs"></i>
+              </div>
+            </button>
+
+          </div>
+        </section>
+
+        <!-- Notifications Settings -->
+        <section>
+          <h3 class="px-2 text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">اعلانات</h3>
+          <div class="bg-white dark:bg-slate-800 rounded-3xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-700/50">
+            
+            <!-- Push Toggle -->
+            <div class="w-full flex items-center p-4 text-start">
+              <div class="shrink-0 w-10 h-10 flex items-center justify-center bg-orange-50 dark:bg-orange-900/20 rounded-full text-orange-600 dark:text-orange-400">
+                <i class="fa-solid fa-bell"></i>
+              </div>
+              <div class="grow mx-4">
+                <p class="font-bold text-sm text-slate-800 dark:text-slate-100">اعلانات برنامه</p>
+                <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">دریافت پیام‌های مهم</p>
+              </div>
+              <div class="shrink-0">
+                 <!-- Custom Toggle -->
+                 <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" class="sr-only peer" [checked]="pushEnabled()" (change)="pushEnabled.set(!pushEnabled())">
+                    <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-teal-600 dir-ltr"></div>
+                 </label>
+              </div>
+            </div>
+
+            <div class="border-t border-slate-100 dark:border-slate-700 mx-4"></div>
+
+            <!-- Email Toggle -->
+            <div class="w-full flex items-center p-4 text-start">
+              <div class="shrink-0 w-10 h-10 flex items-center justify-center bg-pink-50 dark:bg-pink-900/20 rounded-full text-pink-600 dark:text-pink-400">
+                <i class="fa-solid fa-envelope"></i>
+              </div>
+              <div class="grow mx-4">
+                <p class="font-bold text-sm text-slate-800 dark:text-slate-100">ایمیل خبرنامه</p>
+                <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">دریافت اخبار و مقالات</p>
+              </div>
+              <div class="shrink-0">
+                 <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" class="sr-only peer" [checked]="emailEnabled()" (change)="emailEnabled.set(!emailEnabled())">
+                    <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-teal-600 dir-ltr"></div>
+                 </label>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- Data & Privacy -->
+        <section>
+          <h3 class="px-2 text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">حریم خصوصی و داده‌ها</h3>
+          <div class="bg-white dark:bg-slate-800 rounded-3xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-700/50">
+             
+             <!-- Sync -->
+             <button class="w-full flex items-center p-4 text-start hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group">
+              <div class="shrink-0 w-10 h-10 flex items-center justify-center bg-green-50 dark:bg-green-900/20 rounded-full text-green-600 dark:text-green-400">
+                <i class="fa-solid fa-rotate"></i>
+              </div>
+              <div class="grow mx-4">
+                <p class="font-bold text-sm text-slate-800 dark:text-slate-100">همگام‌سازی</p>
+                <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">ذخیره ابری اطلاعات</p>
+              </div>
+              <div class="flex items-center gap-2 text-slate-400 group-hover:translate-x-1 transition-transform rtl:group-hover:-translate-x-1">
+                 <span class="text-xs font-bold text-slate-600 dark:text-slate-300">خودکار</span>
+                 <i class="fa-solid fa-chevron-left text-xs"></i>
+              </div>
+            </button>
+
+            <div class="border-t border-slate-100 dark:border-slate-700 mx-4"></div>
+
+            <!-- Privacy Policy -->
+            <button class="w-full flex items-center p-4 text-start hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group">
+              <div class="shrink-0 w-10 h-10 flex items-center justify-center bg-slate-100 dark:bg-slate-700 rounded-full text-slate-600 dark:text-slate-400">
+                <i class="fa-solid fa-shield-halved"></i>
+              </div>
+              <div class="grow mx-4">
+                <p class="font-bold text-sm text-slate-800 dark:text-slate-100">سیاست حریم خصوصی</p>
+                <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">قوانین استفاده از داده‌ها</p>
+              </div>
+              <div class="shrink-0 text-slate-400 group-hover:translate-x-1 transition-transform rtl:group-hover:-translate-x-1">
+                 <i class="fa-solid fa-chevron-left text-xs"></i>
+              </div>
+            </button>
+
+             <div class="border-t border-slate-100 dark:border-slate-700 mx-4"></div>
+
+            <!-- Terms -->
+            <button class="w-full flex items-center p-4 text-start hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group">
+              <div class="shrink-0 w-10 h-10 flex items-center justify-center bg-slate-100 dark:bg-slate-700 rounded-full text-slate-600 dark:text-slate-400">
+                <i class="fa-solid fa-file-contract"></i>
+              </div>
+              <div class="grow mx-4">
+                <p class="font-bold text-sm text-slate-800 dark:text-slate-100">قوانین و مقررات</p>
+                <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">شرایط سرویس‌دهی</p>
+              </div>
+              <div class="shrink-0 text-slate-400 group-hover:translate-x-1 transition-transform rtl:group-hover:-translate-x-1">
+                 <i class="fa-solid fa-chevron-left text-xs"></i>
+              </div>
+            </button>
+          </div>
+        </section>
+
+        <!-- Calculator Defaults -->
+        <section>
+          <h3 class="px-2 text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">پیش‌فرض‌های محاسبات</h3>
+          <div class="bg-white dark:bg-slate-800 rounded-3xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-700/50">
+             <button (click)="toggleWeightUnit()" class="w-full flex items-center p-4 text-start hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group">
+              <div class="shrink-0 w-10 h-10 flex items-center justify-center bg-indigo-50 dark:bg-indigo-900/20 rounded-full text-indigo-600 dark:text-indigo-400">
+                <i class="fa-solid fa-scale-balanced"></i>
+              </div>
+              <div class="grow mx-4">
+                <p class="font-bold text-sm text-slate-800 dark:text-slate-100">واحد وزن</p>
+                <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">واحد پیش‌فرض در فرم‌ها</p>
+              </div>
+              <div class="flex items-center gap-2 text-slate-400 group-hover:translate-x-1 transition-transform rtl:group-hover:-translate-x-1">
+                 <span class="text-xs font-bold text-slate-600 dark:text-slate-300 font-mono">{{ weightUnit() }}</span>
+                 <i class="fa-solid fa-chevron-left text-xs"></i>
+              </div>
+            </button>
+          </div>
+        </section>
+
+        <!-- Account Actions -->
+        @if (store.user()) {
+            <section>
+              <h3 class="px-2 text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">حساب کاربری</h3>
+              <div class="bg-white dark:bg-slate-800 rounded-3xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-700/50">
+                <button (click)="store.logout()" class="w-full flex items-center p-4 text-start hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors group">
+                  <div class="shrink-0 w-10 h-10 flex items-center justify-center bg-red-100 dark:bg-red-900/40 rounded-full text-red-600 dark:text-red-400">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                  </div>
+                  <div class="grow mx-4">
+                    <p class="font-bold text-sm text-red-600 dark:text-red-400">{{ store.t().logout }}</p>
+                    <p class="text-[10px] text-red-400 dark:text-red-500/70 mt-0.5">خروج امن از حساب</p>
+                  </div>
+                </button>
+              </div>
+            </section>
+        }
+
+        <div class="text-center text-xs text-slate-400 font-medium pb-4">
+          <p>Smart Vet Assistant <span class="dir-ltr inline-block">v1.2.0</span></p>
+        </div>
+
+      </main>
+
+      <!-- EDIT PROFILE MODAL -->
+      @if (showEditProfile()) {
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" style="animation-duration: 0.2s;">
+          <div class="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md p-6 shadow-2xl border border-slate-100 dark:border-slate-700 flex flex-col max-h-[90vh]">
+            <h3 class="text-xl font-black text-slate-800 dark:text-white mb-6 flex items-center gap-2 shrink-0">
+              <i class="fa-solid fa-user-doctor text-teal-500"></i>
+              تکمیل اطلاعات کاربری
+            </h3>
+
+            <div class="space-y-4 overflow-y-auto pr-1 custom-scrollbar">
+              <!-- Name -->
+              <div class="space-y-1">
+                <label class="text-xs font-bold text-slate-500 dark:text-slate-400">نام و نام خانوادگی (نمایشی)</label>
+                <input [(ngModel)]="editForm.displayName" type="text" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:border-teal-500 transition-colors" placeholder="مثلا: Dr. John Doe">
+              </div>
+
+               <!-- Medical Code -->
+              <div class="space-y-1">
+                <label class="text-xs font-bold text-slate-500 dark:text-slate-400">شماره نظام دامپزشکی / دانشجویی</label>
+                <input [(ngModel)]="editForm.medicalCode" type="text" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:border-teal-500 transition-colors dir-ltr text-left" placeholder="e.g. 12345">
+              </div>
+
+               <!-- Email -->
+              <div class="space-y-1">
+                <label class="text-xs font-bold text-slate-500 dark:text-slate-400">ایمیل</label>
+                <input [(ngModel)]="editForm.email" type="email" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:border-teal-500 transition-colors dir-ltr text-left">
+              </div>
+
+               <!-- University / Workplace -->
+              <div class="space-y-1">
+                <label class="text-xs font-bold text-slate-500 dark:text-slate-400">دانشگاه / محل کار</label>
+                <input [(ngModel)]="editForm.workplace" type="text" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:border-teal-500 transition-colors">
+              </div>
+            </div>
+
+            <div class="flex gap-3 mt-8 shrink-0">
+              <button (click)="showEditProfile.set(false)" class="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl font-bold transition-colors">انصراف</button>
+              <button (click)="saveProfile()" class="flex-1 bg-teal-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-teal-600/20 hover:bg-teal-700 transition-all">ذخیره تغییرات</button>
+            </div>
+          </div>
         </div>
       }
 
-      <!-- Settings Groups -->
-      <div class="space-y-4">
-        <h3 class="px-4 text-sm font-bold text-slate-400 uppercase tracking-wider">عمومی</h3>
-        
-        <div class="bg-surface-variant dark:bg-surface-darkVariant rounded-3xl overflow-hidden">
-            <!-- Language -->
-            <div (click)="store.toggleLanguage()" class="p-5 flex justify-between items-center cursor-pointer active:bg-black/5 dark:active:bg-white/5 transition-colors border-b border-slate-200/50 dark:border-slate-700/50">
-                <div class="flex items-center gap-4">
-                    <div class="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300">
-                        <i class="fa-solid fa-globe"></i>
-                    </div>
-                    <span class="font-bold text-slate-700 dark:text-slate-200">زبان برنامه</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <span class="text-sm text-slate-500 font-medium">{{ store.currentLanguage() === 'fa' ? 'فارسی' : 'English' }}</span>
-                    <i class="fa-solid fa-chevron-left text-slate-300 text-xs"></i>
-                </div>
-            </div>
-
-            <!-- Theme -->
-            <div class="p-5">
-                <div class="flex items-center gap-4 mb-4">
-                    <div class="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300">
-                        <i class="fa-solid fa-palette"></i>
-                    </div>
-                    <span class="font-bold text-slate-700 dark:text-slate-200">{{ store.t().theme }}</span>
-                </div>
-                
-                <div class="grid grid-cols-3 gap-2 bg-slate-200/50 dark:bg-slate-900/50 p-1.5 rounded-2xl">
-                    @for (t of ['light', 'dark', 'system']; track t) {
-                         <button 
-                            (click)="store.setTheme(t)"
-                            class="py-2.5 rounded-xl text-xs font-bold transition-all"
-                            [class]="store.theme() === t ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm scale-100' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 scale-95'"
-                            >
-                            @if(t==='light') { <i class="fa-solid fa-sun mr-1"></i> {{ store.t().theme_light }} }
-                            @if(t==='dark') { <i class="fa-solid fa-moon mr-1"></i> {{ store.t().theme_dark }} }
-                            @if(t==='system') { <i class="fa-solid fa-mobile-screen mr-1"></i> {{ store.t().theme_system }} }
-                        </button>
-                    }
-                </div>
-            </div>
-        </div>
-
-        <h3 class="px-4 text-sm font-bold text-slate-400 uppercase tracking-wider mt-6">دیتابیس</h3>
-         <div class="bg-surface-variant dark:bg-surface-darkVariant rounded-3xl overflow-hidden">
-             <div class="p-5 flex justify-between items-center cursor-pointer active:bg-black/5 dark:active:bg-white/5 transition-colors">
-                <div class="flex items-center gap-4">
-                    <div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300">
-                        <i class="fa-solid fa-cloud-arrow-down"></i>
-                    </div>
-                    <span class="font-bold text-slate-700 dark:text-slate-200">بروزرسانی داروها</span>
-                </div>
-                <i class="fa-solid fa-chevron-left text-slate-300 text-xs"></i>
-            </div>
-         </div>
-
-      </div>
-
-      <!-- Subscription Floating Card -->
-      <div class="bg-slate-900 dark:bg-white rounded-[2.5rem] p-6 text-white dark:text-slate-900 shadow-2xl relative overflow-hidden mt-4">
-        <div class="absolute top-0 right-0 w-40 h-40 bg-white/10 dark:bg-black/10 rounded-full -mr-10 -mt-10 blur-3xl"></div>
-        
-        <div class="flex justify-between items-start mb-4">
-            <div>
-                 <h3 class="text-xl font-black mb-1">وضعیت اشتراک</h3>
-                 <div class="inline-block bg-white/20 dark:bg-black/10 px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm">
-                    {{ store.isPremium() ? 'Premium Plan' : 'Free Plan' }}
-                 </div>
-            </div>
-            <div class="w-12 h-12 bg-yellow-400 rounded-full flex items-center justify-center text-black text-xl shadow-lg shadow-yellow-400/50">
-                <i class="fa-solid fa-crown"></i>
-            </div>
-        </div>
-
-        <button 
-          (click)="handleSubscription()"
-          class="w-full bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold py-4 rounded-2xl hover:scale-[1.02] transition-transform active:scale-95 shadow-lg"
-        >
-          {{ store.isPremium() ? 'مدیریت اشتراک' : store.t().upgrade }}
-        </button>
-      </div>
-
     </div>
   `,
-  imports: [NgClass]
+  imports: [NgClass, FormsModule]
 })
 export class SettingsComponent {
   store = inject(VetStoreService);
   router = inject(Router);
 
-  goToLogin() {
-    this.router.navigate(['/login']);
+  // Local state for UI toggles
+  pushEnabled = signal(true);
+  emailEnabled = signal(true);
+  weightUnit = signal<'kg' | 'lbs'>('kg');
+  
+  // Edit Profile Modal State
+  showEditProfile = signal(false);
+  editForm = {
+    displayName: '',
+    email: '',
+    medicalCode: '',
+    workplace: ''
+  };
+
+  getInitials(name: string | undefined): string {
+    if (!name) return 'U';
+    return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
   }
 
-  handleSubscription() {
-    if (!this.store.user()) {
-      this.goToLogin();
-    } else {
-      this.store.togglePremium();
+  cycleTheme() {
+    const current = this.store.theme();
+    const next: AppTheme = current === 'light' ? 'dark' : current === 'dark' ? 'system' : 'light';
+    this.store.setTheme(next);
+  }
+
+  toggleWeightUnit() {
+    this.weightUnit.update(u => u === 'kg' ? 'lbs' : 'kg');
+  }
+
+  openEditProfile() {
+    const u = this.store.user();
+    if (u) {
+        this.editForm = {
+            displayName: u.displayName || '',
+            email: u.email || '',
+            medicalCode: u.medicalCode || '',
+            workplace: u.workplace || ''
+        };
+        this.showEditProfile.set(true);
     }
+  }
+
+  saveProfile() {
+    this.store.updateUser({
+        displayName: this.editForm.displayName,
+        email: this.editForm.email,
+        medicalCode: this.editForm.medicalCode,
+        workplace: this.editForm.workplace,
+        isProfileComplete: true
+    });
+    this.showEditProfile.set(false);
+    this.store.showNotification('اطلاعات کاربری با موفقیت بروزرسانی شد', 'success');
   }
 }

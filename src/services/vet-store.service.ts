@@ -32,6 +32,13 @@ export interface User {
   phoneNumber?: string;
   email?: string;
   photoUrl?: string;
+  // Profile Fields
+  fullName?: string;
+  gender?: string; // 'Male' | 'Female' | 'Prefer not to say'
+  workplace?: string; // University or Work
+  fieldOfStudy?: string;
+  medicalCode?: string; // Vet Code or Student Code
+  isProfileComplete?: boolean;
 }
 
 export interface AppNotification {
@@ -201,8 +208,15 @@ export class VetStoreService {
     }, 3000);
   }
 
-  // --- Auth Logic (Simulated) ---
+  // --- Auth & User Logic ---
   
+  updateUser(data: Partial<User>) {
+    this.user.update(currentUser => {
+      if (!currentUser) return null;
+      return { ...currentUser, ...data };
+    });
+  }
+
   async loginWithPhone(phoneNumber: string): Promise<boolean> {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 1000));

@@ -761,3 +761,14 @@ export class HomeComponent {
     this.store.showNotification('اطلاعات بیمار ذخیره شد.', 'success');
   }
 }
+
+// Inline Pipe for formatting
+import { Pipe, PipeTransform } from '@angular/core';
+
+@Pipe({ name: 'formatLineBreaks', standalone: true })
+export class FormatLineBreaksPipe implements PipeTransform {
+  transform(value: string | null): string {
+    if (!value) return '';
+    return value.replace(/\n/g, '<br>');
+  }
+}
