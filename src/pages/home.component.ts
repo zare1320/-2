@@ -367,8 +367,7 @@ import {
 
     </div>
   `,
-  imports: [FormsModule, NgClass],
-  pipes: [] 
+  imports: [FormsModule, NgClass]
 })
 export class HomeComponent {
   store = inject(VetStoreService);
@@ -722,7 +721,7 @@ export class HomeComponent {
 
   savePatient() {
     if (!this.weight() || !this.name()) {
-      alert('لطفا حداقل نام و وزن حیوان را وارد کنید.');
+      this.store.showNotification('لطفا حداقل نام و وزن حیوان را وارد کنید.', 'error');
       return;
     }
 
@@ -759,17 +758,6 @@ export class HomeComponent {
 
     this.store.setPatient(patient);
     this.store.addPatient(patient);
-    alert('اطلاعات بیمار ذخیره شد.');
-  }
-}
-
-// Inline Pipe for formatting
-import { Pipe, PipeTransform } from '@angular/core';
-
-@Pipe({ name: 'formatLineBreaks', standalone: true })
-export class FormatLineBreaksPipe implements PipeTransform {
-  transform(value: string | null): string {
-    if (!value) return '';
-    return value.replace(/\n/g, '<br>');
+    this.store.showNotification('اطلاعات بیمار ذخیره شد.', 'success');
   }
 }

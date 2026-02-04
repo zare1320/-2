@@ -2,6 +2,7 @@ import { Component, inject, computed } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { NavComponent } from './components/nav.component';
 import { VetStoreService } from './services/vet-store.service';
+import { NgClass } from '@angular/common';
 
 @Component({
   selector: 'app-root',
@@ -31,9 +32,35 @@ import { VetStoreService } from './services/vet-store.service';
 
       <!-- Navigation -->
       <app-nav></app-nav>
+
+      <!-- Global Toast Notification -->
+      @if (store.notification()) {
+        <div class="fixed top-24 left-1/2 -translate-x-1/2 z-[100] w-max max-w-[90%] animate-fade-in-down">
+           <div class="flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl backdrop-blur-md border"
+               [ngClass]="{
+                 'bg-slate-800/95 border-slate-700 text-white': true
+               }"
+           >
+              <!-- Icon based on type -->
+              <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                  [ngClass]="{
+                    'bg-green-500/20 text-green-400': store.notification()?.type === 'success',
+                    'bg-red-500/20 text-red-400': store.notification()?.type === 'error',
+                    'bg-blue-500/20 text-blue-400': store.notification()?.type === 'info'
+                  }"
+              >
+                  @if(store.notification()?.type === 'success') { <i class="fa-solid fa-check"></i> }
+                  @if(store.notification()?.type === 'error') { <i class="fa-solid fa-triangle-exclamation"></i> }
+                  @if(store.notification()?.type === 'info') { <i class="fa-solid fa-info"></i> }
+              </div>
+
+              <span class="text-sm font-bold">{{ store.notification()?.message }}</span>
+           </div>
+        </div>
+      }
     </div>
   `,
-  imports: [RouterOutlet, NavComponent]
+  imports: [RouterOutlet, NavComponent, NgClass]
 })
 export class AppComponent {
   store = inject(VetStoreService);

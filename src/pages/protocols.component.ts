@@ -1,9 +1,19 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, Pipe, PipeTransform } from '@angular/core';
 import { VetStoreService } from '../services/vet-store.service';
 import { GeminiService } from '../services/gemini.service';
 import { FormsModule } from '@angular/forms';
-import { FormatLineBreaksPipe } from '../pages/home.component'; // Reusing pipe
 import { Router } from '@angular/router';
+
+@Pipe({
+  name: 'formatLineBreaks',
+  standalone: true
+})
+export class FormatLineBreaksPipe implements PipeTransform {
+  transform(value: string): string {
+    if (!value) return '';
+    return value.replace(/\n/g, '<br>');
+  }
+}
 
 @Component({
   selector: 'app-protocols',

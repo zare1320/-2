@@ -34,6 +34,11 @@ export interface User {
   photoUrl?: string;
 }
 
+export interface AppNotification {
+  message: string;
+  type: 'success' | 'error' | 'info';
+}
+
 export type AppLanguage = 'fa' | 'en';
 export type AppTheme = 'light' | 'dark' | 'system';
 
@@ -48,6 +53,7 @@ export class VetStoreService {
   readonly theme = signal<AppTheme>('system');
   readonly currentPatient = signal<Patient | null>(null);
   readonly savedPatients = signal<Patient[]>([]);
+  readonly notification = signal<AppNotification | null>(null);
   
   // Translation Dictionary
   private translations = {
@@ -185,6 +191,14 @@ export class VetStoreService {
   togglePremium() {
     if (!this.user()) return; // Cannot be premium without user
     this.isPremium.update(v => !v);
+  }
+
+  // --- Notification Logic ---
+  showNotification(message: string, type: 'success' | 'error' | 'info' = 'success') {
+    this.notification.set({ message, type });
+    setTimeout(() => {
+      this.notification.set(null);
+    }, 3000);
   }
 
   // --- Auth Logic (Simulated) ---
