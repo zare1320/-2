@@ -1,6 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { VetStoreService, Patient } from '../services/vet-store.service';
 import { Router } from '@angular/router';
+import { NgClass } from '@angular/common';
 
 @Component({
   selector: 'app-profile',
@@ -23,7 +24,7 @@ import { Router } from '@angular/router';
       } @else {
         <div class="grid grid-cols-1 gap-4">
           @for (p of store.savedPatients(); track p.id) {
-            <div class="bg-surface-variant dark:bg-surface-darkVariant p-5 rounded-3xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group">
+            <div class="bg-surface-variant dark:bg-surface-darkVariant p-5 rounded-3xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group relative">
               
               <div class="flex justify-between items-start mb-4">
                 <div class="flex items-center gap-4">
@@ -45,8 +46,15 @@ import { Router } from '@angular/router';
                     <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">{{ p.breed }} • {{ p.age }} ساله</p>
                   </div>
                 </div>
-                <div class="text-[10px] font-bold text-slate-400 bg-white dark:bg-slate-700 px-2 py-1 rounded-lg">
-                  {{ p.date }}
+                
+                <div class="flex flex-col items-end gap-2">
+                   <div class="text-[10px] font-bold text-slate-400 bg-white dark:bg-slate-700 px-2 py-1 rounded-lg">
+                      {{ p.date }}
+                   </div>
+                   <!-- Delete Button -->
+                   <button (click)="deletePatient(p.id, $event)" class="w-10 h-10 rounded-full bg-red-50 dark:bg-red-900/20 text-red-500 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors shadow-sm relative z-20 cursor-pointer active:scale-95">
+                      <i class="fa-solid fa-trash-can text-sm pointer-events-none"></i>
+                   </button>
                 </div>
               </div>
 
@@ -104,7 +112,8 @@ import { Router } from '@angular/router';
         </div>
       }
     </div>
-  `
+  `,
+  imports: [NgClass]
 })
 export class ProfileComponent {
   store = inject(VetStoreService);
@@ -118,5 +127,12 @@ export class ProfileComponent {
   loadForCalc(p: Patient) {
     this.store.setPatient(p);
     this.router.navigate(['/calculators']);
+  }
+
+  deletePatient(id: string, event: Event) {
+    event.stopPropagation();
+    if (window.confirm('آیا از حذف این پرونده اطمینان دارید؟\nاین عملیات غیرقابل بازگشت است.')) {
+      this.store.removePatient(id);
+    }
   }
 }

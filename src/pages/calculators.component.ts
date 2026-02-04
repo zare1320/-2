@@ -3,6 +3,7 @@ import { VetStoreService } from '../services/vet-store.service';
 import { FormsModule } from '@angular/forms';
 import { NgClass, DecimalPipe } from '@angular/common';
 import { Router } from '@angular/router';
+import { drugDatabase, DrugEntry } from '../data/drug-database';
 
 @Component({
   selector: 'app-calculators',
@@ -75,10 +76,44 @@ import { Router } from '@angular/router';
                 </div>
              </div>
 
-             <!-- Drug Info Inputs -->
-             <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-teal-500 transition-colors">
-                  <label class="text-[10px] font-bold text-slate-400 uppercase">نام دارو</label>
-                  <input [(ngModel)]="drugName" type="text" placeholder="Enter drug/medication name" class="w-full bg-transparent text-sm font-bold text-slate-800 dark:text-slate-100 focus:outline-none placeholder-slate-300">
+             <!-- Smart Drug Search Input -->
+             <div class="relative z-20">
+                <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-teal-500 transition-colors">
+                      <label class="text-[10px] font-bold text-slate-400 uppercase">نام دارو (جستجوی هوشمند)</label>
+                      <div class="flex items-center gap-2">
+                         <i class="fa-solid fa-magnifying-glass text-slate-400"></i>
+                         <input 
+                            [(ngModel)]="searchDrugQuery" 
+                            (ngModelChange)="onDrugSearch($event)"
+                            type="text" 
+                            placeholder="نام فارسی، انگلیسی یا تجاری..." 
+                            class="w-full bg-transparent text-sm font-bold text-slate-800 dark:text-slate-100 focus:outline-none placeholder-slate-300"
+                            autocomplete="off"
+                         >
+                         @if (searchDrugQuery()) {
+                            <button (click)="clearSearch()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-times"></i></button>
+                         }
+                      </div>
+                </div>
+
+                <!-- Search Results Dropdown -->
+                @if (drugSearchResults().length > 0) {
+                   <div class="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 max-h-60 overflow-y-auto z-50">
+                      @for (drug of drugSearchResults(); track drug.id) {
+                         <button (click)="selectDrug(drug)" class="w-full text-right p-3 hover:bg-teal-50 dark:hover:bg-slate-700 border-b border-slate-100 dark:border-slate-700/50 last:border-0 transition-colors flex flex-col items-start gap-1">
+                            <div class="flex justify-between w-full">
+                               <span class="font-bold text-slate-800 dark:text-slate-200 text-sm">{{ drug.genericName.fa }}</span>
+                               <span class="text-xs text-slate-500 font-mono">{{ drug.genericName.en }}</span>
+                            </div>
+                            @if(drug.tradeNames.length > 0) {
+                               <span class="text-[10px] text-teal-600 dark:text-teal-400">
+                                  تجاری: {{ drug.tradeNames.join(', ') }}
+                               </span>
+                            }
+                         </button>
+                      }
+                   </div>
+                }
              </div>
 
              <div class="grid grid-cols-2 gap-3">
@@ -100,17 +135,24 @@ import { Router } from '@angular/router';
                 <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-teal-500 transition-colors">
                     <label class="text-[9px] font-bold text-slate-400 uppercase">روش مصرف</label>
                     <select [(ngModel)]="route" class="w-full bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none">
-                        <option value="" disabled selected>Choose route...</option>
-                        <option value="PO" class="dark:bg-slate-800">خوراکی (PO)</option>
+                        <option value="" disabled selected>انتخاب کنید...</option>
                         <option value="IV" class="dark:bg-slate-800">وریدی (IV)</option>
                         <option value="IM" class="dark:bg-slate-800">عضلانی (IM)</option>
                         <option value="SC" class="dark:bg-slate-800">زیرجلدی (SC)</option>
+                        <option value="PO" class="dark:bg-slate-800">خوراکی (PO)</option>
                     </select>
                 </div>
              </div>
 
              <!-- Calculation Inputs -->
-             <div class="border-t-2 border-dashed border-slate-100 dark:border-slate-700/50 pt-4 grid grid-cols-1 gap-3">
+             <div class="border-t-2 border-dashed border-slate-100 dark:border-slate-700/50 pt-4 grid grid-cols-1 gap-3 relative">
+                <!-- Auto-fill Indicator -->
+                @if (selectedDrugId()) {
+                    <div class="absolute -top-3 right-4 bg-teal-100 text-teal-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-teal-200 shadow-sm animate-fade-in">
+                       <i class="fa-solid fa-magic mr-1"></i> تکمیل خودکار
+                    </div>
+                }
+
                 <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-teal-500 transition-colors">
                   <label class="text-[10px] font-bold text-slate-400 uppercase">وزن (kg)</label>
                   <input [(ngModel)]="weightInput" type="number" class="w-full bg-transparent font-mono text-lg font-bold text-slate-800 dark:text-slate-100 focus:outline-none placeholder-slate-300">
@@ -464,7 +506,10 @@ export class CalculatorsComponent {
   concentration = signal<number>(100);
 
   // Drug Dosage Manual Fields
-  drugName = signal<string>('');
+  searchDrugQuery = signal<string>('');
+  drugSearchResults = signal<DrugEntry[]>([]);
+  selectedDrugId = signal<string | null>(null);
+
   adminDate = signal<string>('');
   followUpDate = signal<string>('');
   nextDoseTime = signal<string>('');
@@ -532,6 +577,61 @@ export class CalculatorsComponent {
         'cow': 'گاو'
     };
     return list[id] || 'سایر';
+  }
+
+  // --- Drug Search Logic ---
+  onDrugSearch(query: string) {
+      this.searchDrugQuery.set(query);
+      if (!query || query.length < 2) {
+          this.drugSearchResults.set([]);
+          return;
+      }
+      
+      const q = query.toLowerCase();
+      const results = drugDatabase.filter(d => 
+          d.genericName.en.toLowerCase().includes(q) ||
+          d.genericName.fa.includes(q) ||
+          d.tradeNames.some(t => t.toLowerCase().includes(q))
+      );
+      this.drugSearchResults.set(results);
+  }
+
+  selectDrug(drug: DrugEntry) {
+      this.searchDrugQuery.set(drug.genericName.fa);
+      this.selectedDrugId.set(drug.id);
+      this.drugSearchResults.set([]);
+
+      // Auto-Fill Logic
+      const patientSpecies = this.store.currentPatient()?.species || 'dog';
+      
+      // 1. Concentration: Try to find a form, default to first form
+      if (drug.forms && drug.forms.length > 0) {
+          this.concentration.set(drug.forms[0].concentration);
+          // Auto-set route if available
+          if (drug.forms[0].routes && drug.forms[0].routes.length > 0) {
+              this.route.set(drug.forms[0].routes[0]);
+          }
+      }
+
+      // 2. Dosage Rate: Look up species dosage
+      const doseInfo = drug.speciesDosage[patientSpecies];
+      if (doseInfo) {
+          this.dosageRate.set(doseInfo.avg);
+      } else {
+          // Fallback or alert if species not compatible
+           console.warn(`No dosage found for species: ${patientSpecies}.`);
+           // Optional: Reset dosage if strict safety is needed, or keep 0
+           this.dosageRate.set(0);
+      }
+  }
+
+  clearSearch() {
+      this.searchDrugQuery.set('');
+      this.drugSearchResults.set([]);
+      this.selectedDrugId.set(null);
+      // Reset calculated fields
+      this.dosageRate.set(0);
+      this.concentration.set(0);
   }
 
   // 1. Drug

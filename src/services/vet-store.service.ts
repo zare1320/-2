@@ -177,6 +177,10 @@ export class VetStoreService {
     this.savedPatients.update(list => [patient, ...list]);
   }
 
+  removePatient(id: string) {
+    this.savedPatients.update(list => list.filter(p => p.id !== id));
+  }
+
   // --- Subscription Logic ---
   togglePremium() {
     if (!this.user()) return; // Cannot be premium without user
