@@ -1,0 +1,8 @@
+{
+  "name": "Smart Vet Assistant",
+  "description": "Comprehensive veterinary tool for diagnosis, drug calculations, and patient management.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
