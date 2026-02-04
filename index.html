@@ -76,6 +76,30 @@
         -webkit-box-shadow: 0 0 0 30px #23272a inset !important;
         -webkit-text-fill-color: #fff !important;
     }
+
+    /* PRINT STYLES */
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #printable-area, #printable-area * {
+        visibility: visible;
+      }
+      #printable-area {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        background: white;
+        color: black;
+        direction: rtl;
+        padding: 20px;
+      }
+      /* Hide scrollbars and UI elements */
+      app-nav, header, .no-print {
+        display: none !important;
+      }
+    }
   </style>
 <script type="importmap">
 {
