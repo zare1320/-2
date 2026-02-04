@@ -111,45 +111,45 @@ import {
                 <div class="bg-white dark:bg-slate-800 rounded-2xl p-1 border border-slate-100 dark:border-slate-700/50 shadow-sm">
                    <div class="grid grid-cols-2 gap-1">
                       <!-- Vaccine Type Dropdown -->
-                      <div class="relative bg-surface-variant dark:bg-surface-darkVariant rounded-xl px-3 py-2 flex flex-col justify-center">
-                         <label class="text-[9px] font-bold text-slate-400 uppercase mb-1">نوع واکسن</label>
-                         <select [(ngModel)]="vaccineType" class="w-full bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none appearance-none relative z-10">
-                            <option value="">انتخاب کنید...</option>
-                            <option value="DHPPi">چندگانه (DHPPi)</option>
-                            <option value="DHPPiL">چندگانه + لپتوسپیروز (DHPPi+L)</option>
-                            <option value="Rabies">هاری (Rabies)</option>
-                            <option value="Poly+Rabies">چندگانه + هاری</option>
-                            <option value="Tricat">سه‌گانه گربه (Tricat)</option>
-                            <option value="FeLV">لوسمی گربه (FeLV)</option>
+                      <div class="relative bg-slate-100 dark:bg-slate-900 rounded-xl px-3 py-2 flex flex-col justify-center transition-colors">
+                         <label class="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">نوع واکسن</label>
+                         <select [(ngModel)]="vaccineType" class="w-full bg-transparent text-xs font-bold text-slate-900 dark:text-white focus:outline-none appearance-none relative z-10">
+                            <option value="" class="text-slate-500 dark:text-slate-400">انتخاب کنید...</option>
+                            <option value="DHPPi" class="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">چندگانه (DHPPi)</option>
+                            <option value="DHPPiL" class="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">چندگانه + لپتوسپیروز (DHPPi+L)</option>
+                            <option value="Rabies" class="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">هاری (Rabies)</option>
+                            <option value="Poly+Rabies" class="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">چندگانه + هاری</option>
+                            <option value="Tricat" class="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">سه‌گانه گربه (Tricat)</option>
+                            <option value="FeLV" class="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">لوسمی گربه (FeLV)</option>
                         </select>
                         <i class="fa-solid fa-chevron-down absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 pointer-events-none"></i>
                       </div>
 
                       <!-- Persian Date Picker Modern -->
-                      <div class="relative bg-surface-variant dark:bg-surface-darkVariant rounded-xl px-3 py-2 flex flex-col justify-center dir-ltr">
-                         <label class="text-[9px] font-bold text-slate-400 uppercase mb-1 text-right w-full">تاریخ تزریق</label>
+                      <div class="relative bg-slate-100 dark:bg-slate-900 rounded-xl px-3 py-2 flex flex-col justify-center dir-ltr transition-colors">
+                         <label class="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 text-right w-full">تاریخ تزریق</label>
                          <div class="flex items-center justify-between gap-1 w-full">
                              <!-- Year -->
                              <div class="relative flex-1 min-w-0">
-                                <select [(ngModel)]="vacYear" (change)="checkVaccineStatus()" class="w-full bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none appearance-none text-center p-0">
-                                  <option value="" disabled selected>سال</option>
-                                  @for(y of years; track y) { <option [value]="y">{{y}}</option> }
+                                <select [(ngModel)]="vacYear" (change)="checkVaccineStatus()" class="w-full bg-transparent text-xs font-bold text-slate-900 dark:text-white focus:outline-none appearance-none text-center p-0">
+                                  <option value="" disabled selected class="text-slate-500">سال</option>
+                                  @for(y of years; track y) { <option [value]="y" class="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">{{y}}</option> }
                                 </select>
                              </div>
-                             <span class="text-slate-300 text-xs">/</span>
+                             <span class="text-slate-400 dark:text-slate-500 text-xs font-light">/</span>
                              <!-- Month -->
                              <div class="relative flex-[1.5] min-w-0">
-                                <select [(ngModel)]="vacMonth" (change)="checkVaccineStatus()" class="w-full bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none appearance-none text-center p-0">
-                                  <option value="" disabled selected>ماه</option>
-                                  @for(m of months; track m; let i = $index) { <option [value]="i+1">{{m}}</option> }
+                                <select [(ngModel)]="vacMonth" (change)="checkVaccineStatus()" class="w-full bg-transparent text-xs font-bold text-slate-900 dark:text-white focus:outline-none appearance-none text-center p-0">
+                                  <option value="" disabled selected class="text-slate-500">ماه</option>
+                                  @for(m of months; track m; let i = $index) { <option [value]="i+1" class="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">{{m}}</option> }
                                 </select>
                              </div>
-                             <span class="text-slate-300 text-xs">/</span>
+                             <span class="text-slate-400 dark:text-slate-500 text-xs font-light">/</span>
                              <!-- Day -->
                              <div class="relative flex-1 min-w-0">
-                                <select [(ngModel)]="vacDay" (change)="checkVaccineStatus()" class="w-full bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none appearance-none text-center p-0">
-                                  <option value="" disabled selected>روز</option>
-                                  @for(d of days; track d) { <option [value]="d">{{d}}</option> }
+                                <select [(ngModel)]="vacDay" (change)="checkVaccineStatus()" class="w-full bg-transparent text-xs font-bold text-slate-900 dark:text-white focus:outline-none appearance-none text-center p-0">
+                                  <option value="" disabled selected class="text-slate-500">روز</option>
+                                  @for(d of days; track d) { <option [value]="d" class="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">{{d}}</option> }
                                 </select>
                              </div>
                          </div>
@@ -195,43 +195,43 @@ import {
                 <div class="bg-white dark:bg-slate-800 rounded-2xl p-1 border border-slate-100 dark:border-slate-700/50 shadow-sm">
                    <div class="grid grid-cols-2 gap-1">
                       <!-- Dewormer Type Dropdown -->
-                      <div class="relative bg-surface-variant dark:bg-surface-darkVariant rounded-xl px-3 py-2 flex flex-col justify-center">
-                         <label class="text-[9px] font-bold text-slate-400 uppercase mb-1">نوع انگل‌تراپی</label>
-                         <select [(ngModel)]="dewormerType" class="w-full bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none appearance-none relative z-10">
-                             <option value="">انتخاب کنید...</option>
-                             <option value="Oral Tablet">قرص خوراکی</option>
-                             <option value="Spot-on">قطره پشت گردنی</option>
-                             <option value="Injectable">تزریقی</option>
-                             <option value="Suspension">شربت ضد انگل</option>
+                      <div class="relative bg-slate-100 dark:bg-slate-900 rounded-xl px-3 py-2 flex flex-col justify-center transition-colors">
+                         <label class="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">نوع انگل‌تراپی</label>
+                         <select [(ngModel)]="dewormerType" class="w-full bg-transparent text-xs font-bold text-slate-900 dark:text-white focus:outline-none appearance-none relative z-10">
+                             <option value="" class="text-slate-500 dark:text-slate-400">انتخاب کنید...</option>
+                             <option value="Oral Tablet" class="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">قرص خوراکی</option>
+                             <option value="Spot-on" class="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">قطره پشت گردنی</option>
+                             <option value="Injectable" class="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">تزریقی</option>
+                             <option value="Suspension" class="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">شربت ضد انگل</option>
                         </select>
                         <i class="fa-solid fa-chevron-down absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 pointer-events-none"></i>
                       </div>
 
                       <!-- Persian Date Picker Modern -->
-                      <div class="relative bg-surface-variant dark:bg-surface-darkVariant rounded-xl px-3 py-2 flex flex-col justify-center dir-ltr">
-                         <label class="text-[9px] font-bold text-slate-400 uppercase mb-1 text-right w-full">تاریخ مصرف</label>
+                      <div class="relative bg-slate-100 dark:bg-slate-900 rounded-xl px-3 py-2 flex flex-col justify-center dir-ltr transition-colors">
+                         <label class="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 text-right w-full">تاریخ مصرف</label>
                          <div class="flex items-center justify-between gap-1 w-full">
                              <!-- Year -->
                              <div class="relative flex-1 min-w-0">
-                                <select [(ngModel)]="dewormYear" (change)="checkDewormingStatus()" class="w-full bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none appearance-none text-center p-0">
-                                  <option value="" disabled selected>سال</option>
-                                  @for(y of years; track y) { <option [value]="y">{{y}}</option> }
+                                <select [(ngModel)]="dewormYear" (change)="checkDewormingStatus()" class="w-full bg-transparent text-xs font-bold text-slate-900 dark:text-white focus:outline-none appearance-none text-center p-0">
+                                  <option value="" disabled selected class="text-slate-500">سال</option>
+                                  @for(y of years; track y) { <option [value]="y" class="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">{{y}}</option> }
                                 </select>
                              </div>
-                             <span class="text-slate-300 text-xs">/</span>
+                             <span class="text-slate-400 dark:text-slate-500 text-xs font-light">/</span>
                              <!-- Month -->
                              <div class="relative flex-[1.5] min-w-0">
-                                <select [(ngModel)]="dewormMonth" (change)="checkDewormingStatus()" class="w-full bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none appearance-none text-center p-0">
-                                  <option value="" disabled selected>ماه</option>
-                                  @for(m of months; track m; let i = $index) { <option [value]="i+1">{{m}}</option> }
+                                <select [(ngModel)]="dewormMonth" (change)="checkDewormingStatus()" class="w-full bg-transparent text-xs font-bold text-slate-900 dark:text-white focus:outline-none appearance-none text-center p-0">
+                                  <option value="" disabled selected class="text-slate-500">ماه</option>
+                                  @for(m of months; track m; let i = $index) { <option [value]="i+1" class="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">{{m}}</option> }
                                 </select>
                              </div>
-                             <span class="text-slate-300 text-xs">/</span>
+                             <span class="text-slate-400 dark:text-slate-500 text-xs font-light">/</span>
                              <!-- Day -->
                              <div class="relative flex-1 min-w-0">
-                                <select [(ngModel)]="dewormDay" (change)="checkDewormingStatus()" class="w-full bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none appearance-none text-center p-0">
-                                  <option value="" disabled selected>روز</option>
-                                  @for(d of days; track d) { <option [value]="d">{{d}}</option> }
+                                <select [(ngModel)]="dewormDay" (change)="checkDewormingStatus()" class="w-full bg-transparent text-xs font-bold text-slate-900 dark:text-white focus:outline-none appearance-none text-center p-0">
+                                  <option value="" disabled selected class="text-slate-500">روز</option>
+                                  @for(d of days; track d) { <option [value]="d" class="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">{{d}}</option> }
                                 </select>
                              </div>
                          </div>
