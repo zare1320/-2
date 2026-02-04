@@ -8,6 +8,17 @@ export interface Patient {
   breed: string;
   weight: number; // kg
   age: number; // years
+  
+  // Vaccination
+  vaccineType?: string;
+  vaccinationDate?: string;
+  vaccinationStatus?: string; // 'Valid' | 'Expired' | 'Unknown'
+
+  // Deworming
+  dewormerType?: string;
+  dewormingDate?: string;
+  dewormingStatus?: string; // 'Valid' | 'Expired' | 'Unknown'
+
   symptoms: string;
   diagnosis?: string;
   date: string;

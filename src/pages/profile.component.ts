@@ -50,6 +50,39 @@ import { Router } from '@angular/router';
                 </div>
               </div>
 
+              <!-- Medical Status Chips -->
+              <div class="space-y-2 mb-3">
+                 @if (p.vaccineType) {
+                    <div class="flex items-center justify-between bg-white dark:bg-slate-700/50 p-2 rounded-xl">
+                        <div class="flex items-center gap-2">
+                           <div class="w-6 h-6 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center text-green-600 dark:text-green-300">
+                               <i class="fa-solid fa-syringe text-xs"></i>
+                           </div>
+                           <span class="text-xs font-bold text-slate-700 dark:text-slate-200">{{ p.vaccineType }}</span>
+                        </div>
+                        <span class="text-[10px] text-slate-500 dark:text-slate-400">{{ p.vaccinationDate }}</span>
+                    </div>
+                    @if(p.vaccinationStatus) {
+                         <p class="text-[10px] text-slate-500 dark:text-slate-400 px-1">{{ p.vaccinationStatus }}</p>
+                    }
+                 }
+                 
+                 @if (p.dewormerType) {
+                    <div class="flex items-center justify-between bg-white dark:bg-slate-700/50 p-2 rounded-xl">
+                        <div class="flex items-center gap-2">
+                           <div class="w-6 h-6 rounded-full bg-orange-100 dark:bg-orange-900 flex items-center justify-center text-orange-600 dark:text-orange-300">
+                               <i class="fa-solid fa-shield-virus text-xs"></i>
+                           </div>
+                           <span class="text-xs font-bold text-slate-700 dark:text-slate-200">{{ p.dewormerType }}</span>
+                        </div>
+                        <span class="text-[10px] text-slate-500 dark:text-slate-400">{{ p.dewormingDate }}</span>
+                    </div>
+                    @if(p.dewormingStatus) {
+                         <p class="text-[10px] text-slate-500 dark:text-slate-400 px-1">{{ p.dewormingStatus }}</p>
+                    }
+                 }
+              </div>
+
               @if (p.diagnosis) {
                  <div class="bg-white dark:bg-slate-700/50 rounded-xl p-3 mb-4 text-xs text-slate-600 dark:text-slate-300 leading-relaxed border border-slate-100 dark:border-slate-700">
                    <strong class="text-teal-600 dark:text-teal-400 block mb-1">تشخیص هوشمند:</strong> 
