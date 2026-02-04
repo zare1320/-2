@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { VetStoreService, Patient } from '../services/vet-store.service';
 import { Router } from '@angular/router';
 import { NgClass } from '@angular/common';
@@ -52,8 +52,8 @@ import { NgClass } from '@angular/common';
                       {{ p.date }}
                    </div>
                    <!-- Delete Button -->
-                   <button (click)="deletePatient(p.id, $event)" class="w-10 h-10 rounded-full bg-red-50 dark:bg-red-900/20 text-red-500 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors shadow-sm relative z-20 cursor-pointer active:scale-95">
-                      <i class="fa-solid fa-trash-can text-sm pointer-events-none"></i>
+                   <button (click)="initiateDelete(p.id, $event)" class="w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors shadow-md shadow-red-500/30 relative z-20 cursor-pointer active:scale-95">
+                      <i class="fa-solid fa-trash-can text-xs pointer-events-none"></i>
                    </button>
                 </div>
               </div>
@@ -111,6 +111,24 @@ import { NgClass } from '@angular/common';
           }
         </div>
       }
+
+      <!-- Custom Confirmation Modal -->
+      @if (confirmDeleteId()) {
+        <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" (click)="cancelDelete()">
+            <div class="bg-surface-light dark:bg-surface-dark border border-slate-200 dark:border-slate-700 rounded-[2rem] p-6 w-full max-w-[320px] text-center shadow-2xl scale-100 transition-all" (click)="$event.stopPropagation()">
+                <div class="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500 border-4 border-white dark:border-slate-800 shadow-sm">
+                    <i class="fa-solid fa-trash-can text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-black text-slate-800 dark:text-white mb-2">حذف پرونده</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mb-6 leading-relaxed font-medium">آیا از حذف این پرونده اطمینان دارید؟<br>این عملیات غیرقابل بازگشت است.</p>
+                <div class="flex gap-3">
+                    <button (click)="cancelDelete()" class="flex-1 py-3.5 rounded-2xl font-bold text-xs text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">انصراف</button>
+                    <button (click)="confirmDelete()" class="flex-1 py-3.5 rounded-2xl font-bold text-xs text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/30 transition-colors">بله، حذف شود</button>
+                </div>
+            </div>
+        </div>
+      }
+
     </div>
   `,
   imports: [NgClass]
@@ -118,6 +136,9 @@ import { NgClass } from '@angular/common';
 export class ProfileComponent {
   store = inject(VetStoreService);
   router = inject(Router);
+  
+  // State for tracking which patient is being deleted
+  confirmDeleteId = signal<string | null>(null);
 
   loadPatient(p: Patient) {
     this.store.setPatient(p);
@@ -129,10 +150,20 @@ export class ProfileComponent {
     this.router.navigate(['/calculators']);
   }
 
-  deletePatient(id: string, event: Event) {
+  initiateDelete(id: string, event: Event) {
     event.stopPropagation();
-    if (window.confirm('آیا از حذف این پرونده اطمینان دارید؟\nاین عملیات غیرقابل بازگشت است.')) {
+    this.confirmDeleteId.set(id);
+  }
+
+  confirmDelete() {
+    const id = this.confirmDeleteId();
+    if (id) {
       this.store.removePatient(id);
+      this.confirmDeleteId.set(null);
     }
+  }
+
+  cancelDelete() {
+    this.confirmDeleteId.set(null);
   }
 }
