@@ -13,7 +13,7 @@ export class GeminiService {
     this.genAI = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
   }
 
-  async analyzeImage(base64Image: string, prompt: string): Promise<string> {
+  async analyzeImage(base64Image: string, userPrompt: string, systemInstruction: string): Promise<string> {
     try {
       const model = 'gemini-2.5-flash';
       // Clean base64 string if it has prefix
@@ -30,9 +30,12 @@ export class GeminiService {
               }
             },
             {
-              text: prompt
+              text: userPrompt
             }
           ]
+        },
+        config: {
+          systemInstruction: systemInstruction
         }
       });
       return response.text;

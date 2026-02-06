@@ -1,126 +1,230 @@
-import { Component, inject, signal, Pipe, PipeTransform } from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { VetStoreService } from '../services/vet-store.service';
-import { GeminiService } from '../services/gemini.service';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-
-@Pipe({
-  name: 'formatLineBreaks',
-  standalone: true
-})
-export class FormatLineBreaksPipe implements PipeTransform {
-  transform(value: string): string {
-    if (!value) return '';
-    return value.replace(/\n/g, '<br>');
-  }
-}
+import { protocolsDatabase, Protocol } from '../data/protocols-database';
+import { NgClass } from '@angular/common';
 
 @Component({
   selector: 'app-protocols',
   template: `
-    <div class="space-y-6 animate-fade-in pb-20">
+    <div class="space-y-6 animate-fade-in pb-20 min-h-screen">
       
-      <!-- Search Header -->
-      <div class="bg-surface-variant dark:bg-surface-darkVariant rounded-[2rem] p-6 text-center">
-        <h2 class="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">پروتکل‌های درمانی هوشمند</h2>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">جستجو در جدیدترین رفرنس‌های دامپزشکی</p>
-
-        @if (!store.isPremium()) {
-          <div class="bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800/50 rounded-2xl p-6 text-center shadow-sm">
-            <div class="w-12 h-12 bg-amber-200 dark:bg-amber-800 rounded-full flex items-center justify-center mx-auto mb-3 text-amber-700 dark:text-amber-100">
-               <i class="fa-solid fa-lock text-xl"></i>
+      @if (!store.isPremium()) {
+        <!-- Premium Lock View -->
+        <div class="bg-surface-variant dark:bg-surface-darkVariant rounded-[2rem] p-6 text-center pt-12 min-h-[60vh] flex flex-col justify-center">
+          <div class="bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800/50 rounded-3xl p-6 text-center shadow-sm">
+            <div class="w-16 h-16 bg-amber-200 dark:bg-amber-800 rounded-full flex items-center justify-center mx-auto mb-3 text-amber-700 dark:text-amber-100">
+               <i class="fa-solid fa-lock text-2xl"></i>
             </div>
-            <h3 class="font-black text-amber-900 dark:text-amber-100 mb-1">دسترسی محدود</h3>
-            <p class="text-xs text-amber-700 dark:text-amber-300 mb-4 opacity-80">برای دسترسی به پروتکل‌ها، اشتراک تهیه کنید.</p>
-            <button (click)="handleUpgrade()" class="bg-amber-500 hover:bg-amber-600 text-white px-8 py-3 rounded-full font-bold shadow-lg shadow-amber-500/30 transition-transform active:scale-95">
+            <h3 class="font-black text-amber-900 dark:text-amber-100 mb-1 text-lg">دسترسی به پروتکل‌ها</h3>
+            <p class="text-xs text-amber-700 dark:text-amber-300 mb-5 opacity-80">این بخش یکی از امکانات ویژه دستیار هوشمند است.</p>
+            <button (click)="handleUpgrade()" class="bg-amber-500 hover:bg-amber-600 text-white px-8 py-3 rounded-full font-bold shadow-lg shadow-amber-500/30 transition-transform active:scale-95 w-full">
               {{ store.user() ? 'خرید اشتراک' : 'ورود و خرید اشتراک' }}
             </button>
           </div>
-        } @else {
-          <!-- Modern Search Bar -->
-          <div class="bg-white dark:bg-slate-800 p-2 rounded-full shadow-lg shadow-black/5 flex items-center gap-2 mb-6 border border-slate-100 dark:border-slate-700">
-             <select [(ngModel)]="selectedSpecies" class="bg-slate-100 dark:bg-slate-700 rounded-full px-4 py-3 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors max-w-[120px]">
-              <option value="Dog">سگ</option>
-              <option value="Cat">گربه</option>
-              <option value="Bird">پرندگان</option>
-              <option value="Reptile">خزندگان</option>
-              <option value="Aquatic Animals">آبزیان</option>
-              <option value="Amphibian">دوزیستان</option>
-              <option value="Horse">اسب</option>
-              <option value="Sheep and Goat">گوسفند و بز</option>
-              <option value="Cow">گاو</option>
-            </select>
-            <input 
-              type="text" 
-              [(ngModel)]="searchQuery" 
-              placeholder="نام بیماری (مثال: Parvovirus)..." 
-              class="flex-1 bg-transparent text-sm font-medium text-slate-800 dark:text-slate-100 outline-none px-2 placeholder-slate-400"
-              (keyup.enter)="fetchProtocol()"
-            >
-            <button (click)="fetchProtocol()" [disabled]="isLoading()" class="bg-teal-600 text-white w-10 h-10 rounded-full flex items-center justify-center shadow-md active:scale-90 transition-transform">
-              @if (isLoading()) { <i class="fa-solid fa-spinner fa-spin"></i> } 
-              @else { <i class="fa-solid fa-search"></i> }
-            </button>
+        </div>
+      } @else {
+        <!-- Main Content View -->
+        <div>
+          <!-- Header and Search Bar -->
+          <div class="sticky top-[85px] z-30 mb-6">
+            <div class="bg-surface-variant/90 dark:bg-surface-darkVariant/90 backdrop-blur-md rounded-3xl p-4 shadow-lg shadow-black/5">
+               <div class="relative">
+                  <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400">
+                     <i class="fa-solid fa-magnifying-glass"></i>
+                  </div>
+                  <input 
+                     type="text" 
+                     [(ngModel)]="searchTerm"
+                     placeholder="جستجوی بیماری، علائم یا دارو..." 
+                     class="w-full bg-white dark:bg-slate-800 rounded-full py-3 pr-10 pl-4 text-sm font-medium border border-slate-200 dark:border-slate-700 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-all"
+                  >
+               </div>
+               
+               <!-- Species Filters -->
+               <div class="flex gap-2 overflow-x-auto pt-3 -mx-2 px-2 no-scrollbar">
+                  <button (click)="selectedSpecies.set('all')" [class]="selectedSpecies() === 'all' ? 'bg-teal-600 text-white' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300'" class="px-4 py-2 text-xs font-bold rounded-full whitespace-nowrap transition-colors shadow-sm">
+                     همه
+                  </button>
+                  @for (s of speciesList; track s.id) {
+                     <button (click)="selectedSpecies.set(s.id)" [class]="selectedSpecies() === s.id ? 'bg-teal-600 text-white' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300'" class="px-4 py-2 text-xs font-bold rounded-full whitespace-nowrap transition-colors shadow-sm flex items-center gap-2">
+                        <i [class]="s.icon"></i>
+                        <span>{{s.label}}</span>
+                     </button>
+                  }
+               </div>
+            </div>
           </div>
 
-          <!-- Quick Chips -->
-          <div class="flex flex-wrap gap-2 justify-center">
-            <button (click)="quickSearch('CPV', 'Dog')" class="text-[10px] font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 px-4 py-2 rounded-full hover:bg-teal-50 dark:hover:bg-slate-700 hover:border-teal-200 transition-colors shadow-sm">پاروویروس سگ</button>
-            <button (click)="quickSearch('Renal Failure', 'Cat')" class="text-[10px] font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 px-4 py-2 rounded-full hover:bg-teal-50 dark:hover:bg-slate-700 hover:border-teal-200 transition-colors shadow-sm">نارسایی کلیه گربه</button>
-            <button (click)="quickSearch('Colic', 'Horse')" class="text-[10px] font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 px-4 py-2 rounded-full hover:bg-teal-50 dark:hover:bg-slate-700 hover:border-teal-200 transition-colors shadow-sm">کولیک اسب</button>
-          </div>
-        }
-      </div>
-      
-      <!-- Result Card -->
-      @if (protocolContent() && store.isPremium()) {
-        <div class="bg-surface-variant dark:bg-surface-darkVariant rounded-[2rem] p-6 shadow-sm animate-fade-in">
-           <div class="prose prose-sm prose-slate dark:prose-invert max-w-none">
-              <div [innerHTML]="protocolContent() | formatLineBreaks"></div>
-           </div>
+          <!-- LIST VIEW / DETAIL VIEW -->
+          @if (selectedProtocol(); as protocol) {
+            <!-- Detail View -->
+            <div class="animate-fade-in">
+                <button (click)="selectedProtocol.set(null)" class="flex items-center gap-2 text-sm font-bold text-slate-600 dark:text-slate-300 mb-4 hover:text-teal-600 transition-colors">
+                   <i class="fa-solid fa-arrow-right"></i>
+                   بازگشت به لیست نتایج
+                </button>
+
+                <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 border border-slate-100 dark:border-slate-700 shadow-sm">
+                   <h2 class="text-2xl font-black text-slate-800 dark:text-white">{{ protocol.name.fa }}</h2>
+                   <p class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-6">{{ protocol.name.en }}</p>
+                   
+                   <div class="space-y-2">
+                      @for (section of getProtocolSections(protocol); track section.id) {
+                         <div class="rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-700/50">
+                            <button (click)="toggleAccordion(section.id)" class="w-full flex items-center justify-between p-4" [style.background-color]="section.color + '1A'" [style.color]="section.color">
+                               <div class="flex items-center gap-3">
+                                  <i [class]="section.icon" class="text-lg w-5 text-center"></i>
+                                  <span class="font-bold text-sm">{{ section.title }}</span>
+                               </div>
+                               <i class="fa-solid fa-chevron-down transition-transform" [class.rotate-180]="activeAccordionSection() === section.id"></i>
+                            </button>
+                            @if (activeAccordionSection() === section.id) {
+                              <div class="p-4 bg-surface-light dark:bg-surface-darkVariant text-xs leading-relaxed text-slate-700 dark:text-slate-300 animate-fade-in">
+                                 <div [innerHTML]="section.content"></div>
+                              </div>
+                            }
+                         </div>
+                      }
+                   </div>
+                </div>
+            </div>
+
+          } @else {
+            <!-- List View -->
+            <div class="space-y-3 animate-fade-in">
+               @if (filteredProtocols().length > 0) {
+                  @for (p of filteredProtocols(); track p.id) {
+                    <button (click)="selectProtocol(p)" class="w-full text-right bg-white dark:bg-slate-800 p-5 rounded-3xl flex items-center justify-between hover:bg-teal-50 dark:hover:bg-slate-700 transition-all group border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-lg hover:border-teal-200 dark:hover:border-teal-800">
+                        <div>
+                           <h3 class="font-bold text-lg text-slate-800 dark:text-white group-hover:text-teal-700 dark:group-hover:text-teal-300 transition-colors">{{ p.name.fa }}</h3>
+                           <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">{{ p.definition.substring(0, 100) }}...</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                           <div class="flex -space-x-2 rtl:space-x-reverse">
+                              @for(s of p.species.slice(0, 2); track s) {
+                                 <div class="w-7 h-7 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-500 dark:text-slate-300 text-xs shadow-sm">
+                                    <i [class]="getSpeciesIcon(s)"></i>
+                                 </div>
+                              }
+                           </div>
+                           <i class="fa-solid fa-chevron-left text-slate-400 group-hover:translate-x-[-4px] transition-transform"></i>
+                        </div>
+                    </button>
+                  }
+               } @else {
+                  <div class="text-center pt-16">
+                     <div class="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400 dark:text-slate-500">
+                        <i class="fa-solid fa-file-circle-question text-3xl"></i>
+                     </div>
+                     <h3 class="font-bold text-slate-700 dark:text-slate-200">
+                        {{ searchTerm() ? 'نتیجه‌ای یافت نشد' : 'جستجو را شروع کنید' }}
+                     </h3>
+                     <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        {{ searchTerm() ? 'عبارت جستجو یا فیلترها را تغییر دهید.' : 'نام بیماری مورد نظر خود را وارد کنید.' }}
+                     </p>
+                  </div>
+               }
+            </div>
+          }
         </div>
       }
-
     </div>
   `,
-  imports: [FormsModule, FormatLineBreaksPipe]
+  imports: [FormsModule, NgClass]
 })
 export class ProtocolsComponent {
   store = inject(VetStoreService);
-  gemini = inject(GeminiService);
   router = inject(Router);
 
-  searchQuery = signal('');
-  selectedSpecies = signal('Dog');
-  protocolContent = signal('');
-  isLoading = signal(false);
+  allProtocols = signal<Protocol[]>(protocolsDatabase);
+  searchTerm = signal('');
+  selectedSpecies = signal('all');
+  selectedProtocol = signal<Protocol | null>(null);
+  activeAccordionSection = signal<string | null>('definition');
+
+  speciesList = [
+    { id: 'dog', label: 'سگ', icon: 'fa-solid fa-dog' },
+    { id: 'cat', label: 'گربه', icon: 'fa-solid fa-cat' },
+    { id: 'horse', label: 'اسب', icon: 'fa-solid fa-horse' }
+  ];
+
+  filteredProtocols = computed(() => {
+    const term = this.searchTerm().toLowerCase();
+    const species = this.selectedSpecies();
+    
+    if (!term && species === 'all') {
+      return this.allProtocols();
+    }
+
+    return this.allProtocols().filter(p => {
+      const speciesMatch = species === 'all' || p.species.includes(species);
+      
+      const termMatch = !term || (
+        p.name.en.toLowerCase().includes(term) ||
+        p.name.fa.toLowerCase().includes(term) ||
+        p.signs.some(s => s.toLowerCase().includes(term)) ||
+        p.medications.primary.some(m => m.name.toLowerCase().includes(term))
+      );
+
+      return speciesMatch && termMatch;
+    });
+  });
 
   handleUpgrade() {
     if (!this.store.user()) {
       this.router.navigate(['/login']);
     } else {
-      this.store.togglePremium();
+      // In a real app, this would navigate to a subscription page
+      this.store.togglePremium(); 
     }
   }
 
-  quickSearch(query: string, species: string) {
-    this.searchQuery.set(query);
-    this.selectedSpecies.set(species);
-    this.fetchProtocol();
+  selectProtocol(protocol: Protocol) {
+    this.selectedProtocol.set(protocol);
+    this.activeAccordionSection.set('definition'); // Auto-open first section
+    window.scrollTo(0, 0);
   }
 
-  async fetchProtocol() {
-    if (!this.searchQuery()) return;
-    
-    this.isLoading.set(true);
-    const result = await this.gemini.getProtocol(this.selectedSpecies(), this.searchQuery());
-    // Basic markdown cleanup
-    const cleanResult = result
-      .replace(/\*\*(.*?)\*\*/g, '<strong class="text-teal-700 dark:text-teal-400">$1</strong>')
-      .replace(/### (.*?)\n/g, '<h3 class="text-lg font-black mt-6 mb-3 text-slate-800 dark:text-slate-200">$1</h3>')
-      .replace(/- (.*?)\n/g, '<li class="mb-1 ml-4 list-disc marker:text-teal-500">$1</li>');
-    
-    this.protocolContent.set(cleanResult);
-    this.isLoading.set(false);
+  toggleAccordion(sectionId: string) {
+    this.activeAccordionSection.update(current => current === sectionId ? null : sectionId);
+  }
+
+  getSpeciesIcon(speciesId: string): string {
+    const icons: { [key: string]: string } = {
+      'dog': 'fa-solid fa-dog',
+      'cat': 'fa-solid fa-cat',
+      'horse': 'fa-solid fa-horse',
+      'ferret': 'fa-solid fa-paw'
+    };
+    return icons[speciesId] || 'fa-solid fa-paw';
+  }
+
+  // Helper to structure protocol details for the accordion
+  getProtocolSections(p: Protocol) {
+    return [
+      { id: 'definition', title: 'تعریف بیماری', icon: 'fa-solid fa-book-medical', color: '#0f766e', content: `<p>${p.definition}</p><p class="mt-2 text-xs"><strong>گونه(ها):</strong> ${p.signalment}</p>` },
+      { id: 'signs', title: 'علائم بالینی', icon: 'fa-solid fa-stethoscope', color: '#4f46e5', content: `<ul>${p.signs.map(s => `<li>${s}</li>`).join('')}</ul>` },
+      { id: 'diagnosis', title: 'تشخیص', icon: 'fa-solid fa-vial-virus', color: '#c026d3', content: `
+          <h4 class="font-bold mb-1">تشخیص افتراقی:</h4><ul>${p.diagnosis.differential.map(s => `<li>${s}</li>`).join('')}</ul>
+          <h4 class="font-bold mt-3 mb-1">آزمایش‌ها:</h4><ul>${p.diagnosis.lab_tests.map(s => `<li>${s}</li>`).join('')}</ul>
+          <h4 class="font-bold mt-3 mb-1">تصویربرداری:</h4><ul>${p.diagnosis.imaging.map(s => `<li>${s}</li>`).join('')}</ul>` 
+      },
+      { id: 'treatment', title: 'درمان', icon: 'fa-solid fa-pills', color: '#16a34a', content: `
+          <h4 class="font-bold mb-1">مراقبت‌های پرستاری:</h4><ul>${p.treatment.nursing_care.map(s => `<li>${s}</li>`).join('')}</ul>
+          <h4 class="font-bold mt-3 mb-1">رژیم غذایی:</h4><p>${p.treatment.diet}</p>
+          <h4 class="font-bold mt-3 mb-1">آموزش به صاحب حیوان:</h4><ul>${p.treatment.client_education.map(s => `<li>${s}</li>`).join('')}</ul>` 
+      },
+      { id: 'medications', title: 'داروها', icon: 'fa-solid fa-syringe', color: '#ea580c', content: `
+          <h4 class="font-bold mb-1">داروهای انتخابی:</h4><ul>${p.medications.primary.map(s => `<li><strong>${s.name}:</strong> ${s.notes}</li>`).join('')}</ul>
+          @if (p.medications.contraindicated.length > 0) {
+            <h4 class="font-bold mt-3 mb-1 text-red-500">منع مصرف:</h4><ul>${p.medications.contraindicated.map(s => `<li><strong>${s.name}:</strong> ${s.notes}</li>`).join('')}</ul>
+          }
+          @if (p.medications.precautions.length > 0) {
+            <h4 class="font-bold mt-3 mb-1">احتیاط‌ها:</h4><ul>${p.medications.precautions.map(s => `<li>${s}</li>`).join('')}</ul>
+          }` 
+      },
+    ];
   }
 }
