@@ -178,7 +178,7 @@ import { FormsModule } from '@angular/forms';
             <div class="border-t border-slate-100 dark:border-slate-700 mx-4"></div>
 
             <!-- Privacy Policy -->
-            <button class="w-full flex items-center p-4 text-start hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group">
+            <button (click)="openInfoView('privacy')" class="w-full flex items-center p-4 text-start hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group">
               <div class="shrink-0 w-10 h-10 flex items-center justify-center bg-slate-100 dark:bg-slate-700 rounded-full text-slate-600 dark:text-slate-400">
                 <i class="fa-solid fa-shield-halved"></i>
               </div>
@@ -194,7 +194,7 @@ import { FormsModule } from '@angular/forms';
              <div class="border-t border-slate-100 dark:border-slate-700 mx-4"></div>
 
             <!-- Terms -->
-            <button class="w-full flex items-center p-4 text-start hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group">
+            <button (click)="openInfoView('terms')" class="w-full flex items-center p-4 text-start hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group">
               <div class="shrink-0 w-10 h-10 flex items-center justify-center bg-slate-100 dark:bg-slate-700 rounded-full text-slate-600 dark:text-slate-400">
                 <i class="fa-solid fa-file-contract"></i>
               </div>
@@ -262,7 +262,7 @@ import { FormsModule } from '@angular/forms';
               تکمیل اطلاعات کاربری
             </h3>
 
-            <div class="space-y-4 overflow-y-auto pr-1 custom-scrollbar">
+            <div class="space-y-4 overflow-y-auto pr-1">
               <!-- Name -->
               <div class="space-y-1">
                 <label class="text-xs font-bold text-slate-500 dark:text-slate-400">نام و نام خانوادگی (نمایشی)</label>
@@ -296,6 +296,71 @@ import { FormsModule } from '@angular/forms';
         </div>
       }
 
+      <!-- INFO MODAL (Privacy/Terms) -->
+      @if (activeInfoView()) {
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" style="animation-duration: 0.2s;">
+          <div class="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md p-6 shadow-2xl border border-slate-100 dark:border-slate-700 flex flex-col max-h-[90vh]">
+            @if (activeInfoView() === 'privacy') {
+              <h3 class="text-xl font-black text-slate-800 dark:text-white mb-6 flex items-center gap-3 shrink-0">
+                <i class="fa-solid fa-shield-halved text-blue-500"></i>
+                سیاست حریم خصوصی
+              </h3>
+            } @else {
+               <h3 class="text-xl font-black text-slate-800 dark:text-white mb-6 flex items-center gap-3 shrink-0">
+                <i class="fa-solid fa-file-contract text-purple-500"></i>
+                قوانین و مقررات
+              </h3>
+            }
+
+            <div class="space-y-4 overflow-y-auto pr-2 text-sm text-slate-600 dark:text-slate-300 leading-relaxed text-justify">
+              @if (activeInfoView() === 'privacy') {
+                <div class="prose prose-sm dark:prose-invert max-w-none">
+                  <p>
+                    ما به حریم خصوصی شما احترام می‌گذاریم. این سند نحوه جمع‌آوری، استفاده و محافظت از اطلاعات شما را هنگام استفاده از اپلیکیشن "دستیار هوشمند دامپزشک" تشریح می‌کند.
+                  </p>
+                  <h4>۱. اطلاعات جمع‌آوری شده</h4>
+                  <ul>
+                    <li><strong>اطلاعات کاربری:</strong> شامل نام، شماره تماس، ایمیل و اطلاعات پروفایل که برای ایجاد و مدیریت حساب شما استفاده می‌شود.</li>
+                    <li><strong>اطلاعات بیمار:</strong> داده‌های مربوط به حیوانات (نام، گونه، وزن، علائم و ...) که توسط شما وارد می‌شود، به صورت محلی بر روی دستگاه شما ذخیره می‌گردد.</li>
+                    <li><strong>داده‌های تحلیل هوشمند:</strong> تصاویر و پرامپت‌های متنی که برای تحلیل به Gemini API ارسال می‌شوند، تابع سیاست‌های حریم خصوصی گوگل هستند. ما این داده‌ها را بر روی سرورهای خود ذخیره نمی‌کنیم.</li>
+                  </ul>
+                  <h4>۲. نحوه استفاده از اطلاعات</h4>
+                  <p>
+                    اطلاعات شما برای ارائه خدمات اصلی برنامه، شخصی‌سازی تجربه کاربری و پشتیبانی فنی استفاده می‌شود. ما اطلاعات شخصی شما را با شخص ثالث به اشتراک نمی‌گذاریم، مگر با رضایت شما یا به حکم قانون.
+                  </p>
+                   <h4>۳. امنیت داده‌ها</h4>
+                  <p>
+                    تمام داده‌های حساس بیماران به صورت محلی (localStorage) روی دستگاه شما ذخیره می‌شوند و به سرورهای ما منتقل نمی‌شوند. این امر حداکثر کنترل و امنیت را برای شما فراهم می‌کند.
+                  </p>
+                </div>
+              } @else {
+                <div class="prose prose-sm dark:prose-invert max-w-none">
+                  <p>
+                    با استفاده از اپلیکیشن "دستیار هوشمند دامپزشک"، شما با قوانین و مقررات زیر موافقت می‌کنید.
+                  </p>
+                  <h4>۱. مسئولیت کاربر</h4>
+                  <p>
+                    شما مسئول صحت اطلاعات وارد شده در برنامه هستید. تصمیمات بالینی نهایی باید همیشه توسط دامپزشک مسئول و بر اساس قضاوت حرفه‌ای گرفته شود.
+                  </p>
+                  <h4>۲. محدودیت مسئولیت</h4>
+                  <p>
+                    ابزارهای محاسبه‌گر و تحلیل هوشمند این برنامه به عنوان یک ابزار کمکی طراحی شده‌اند و نباید جایگزین تشخیص و نظر تخصصی دامپزشک شوند. ما هیچ مسئولیتی در قبال خسارات ناشی از استفاده نادرست یا اتکای صرف به اطلاعات این برنامه را بر عهده نمی‌گیریم.
+                  </p>
+                  <h4>۳. مالکیت معنوی</h4>
+                  <p>
+                    تمامی حقوق مالکیت معنوی این اپلیکیشن متعلق به توسعه‌دهندگان آن است. هرگونه کپی‌برداری یا استفاده غیرمجاز از محتوا و کدهای برنامه پیگرد قانونی خواهد داشت.
+                  </p>
+                </div>
+              }
+            </div>
+
+            <div class="mt-8 shrink-0">
+              <button (click)="activeInfoView.set(null)" class="w-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-3 rounded-xl font-bold transition-colors">بستن</button>
+            </div>
+          </div>
+        </div>
+      }
+
     </div>
   `,
   imports: [NgClass, FormsModule]
@@ -317,6 +382,9 @@ export class SettingsComponent {
     medicalCode: '',
     workplace: ''
   };
+
+  // Info Modal State (Privacy/Terms)
+  activeInfoView = signal<'privacy' | 'terms' | null>(null);
 
   getInitials(name: string | undefined): string {
     if (!name) return 'U';
@@ -356,5 +424,9 @@ export class SettingsComponent {
     });
     this.showEditProfile.set(false);
     this.store.showNotification('اطلاعات کاربری با موفقیت بروزرسانی شد', 'success');
+  }
+
+  openInfoView(view: 'privacy' | 'terms') {
+    this.activeInfoView.set(view);
   }
 }
