@@ -304,7 +304,11 @@ interface PrescriptionItem {
                         <div class="bg-teal-600 text-white rounded-3xl p-6 text-center relative overflow-hidden shadow-lg shadow-teal-600/30 flex-1 flex flex-col justify-center">
                             <div class="absolute -right-10 -top-10 w-32 h-32 bg-white/10 rounded-full"></div>
                             <span class="block text-sm font-medium opacity-80 mb-1">حجم تزریقی</span>
-                            <span class="text-4xl font-black font-mono tracking-wider">{{ calculateDrugDose() }} <span class="text-lg">ml</span></span>
+                            <!-- Updated: ml unit moved to the right (first child in RTL) -->
+                            <div class="flex items-baseline justify-center gap-1" dir="rtl">
+                                <span class="text-lg opacity-80">ml</span>
+                                <span class="text-4xl font-black font-mono tracking-wider">{{ calculateDrugDose() }}</span>
+                            </div>
                         </div>
                         
                         <button (click)="addToPrescription()" class="bg-slate-800 dark:bg-slate-700 text-white rounded-3xl px-4 flex flex-col items-center justify-center gap-2 hover:bg-slate-900 active:scale-95 transition-all w-24 shadow-lg">

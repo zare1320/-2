@@ -11,21 +11,55 @@ import { NgClass } from '@angular/common';
     <div class="space-y-6 animate-fade-in pb-20 min-h-screen">
       
       @if (!store.isPremium()) {
-        <!-- Premium Lock View -->
-        <div class="bg-surface-variant dark:bg-surface-darkVariant rounded-[2rem] p-6 text-center pt-12 min-h-[60vh] flex flex-col justify-center">
-          <div class="bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800/50 rounded-3xl p-6 text-center shadow-sm">
-            <div class="w-16 h-16 bg-amber-200 dark:bg-amber-800 rounded-full flex items-center justify-center mx-auto mb-3 text-amber-700 dark:text-amber-100">
-               <i class="fa-solid fa-lock text-2xl"></i>
-            </div>
-            <h3 class="font-black text-amber-900 dark:text-amber-100 mb-1 text-lg">دسترسی به پروتکل‌ها</h3>
-            <p class="text-xs text-amber-700 dark:text-amber-300 mb-5 opacity-80">این بخش یکی از امکانات ویژه دستیار هوشمند است.</p>
-            <button (click)="handleUpgrade()" class="bg-amber-500 hover:bg-amber-600 text-white px-8 py-3 rounded-full font-bold shadow-lg shadow-amber-500/30 transition-transform active:scale-95 w-full">
-              {{ store.user() ? 'خرید اشتراک' : 'ورود و خرید اشتراک' }}
-            </button>
+        <!-- Premium Lock View with Description -->
+        <div class="flex flex-col items-center justify-center pt-8 px-4 animate-slide-up">
+
+          <!-- Hero Icon -->
+          <div class="w-24 h-24 bg-teal-100 dark:bg-teal-900/50 rounded-[2rem] flex items-center justify-center mb-6 shadow-inner text-teal-600 dark:text-teal-400 rotate-3 transform hover:rotate-6 transition-transform duration-500">
+             <i class="fa-solid fa-file-medical text-4xl"></i>
           </div>
+
+          <!-- Section Title -->
+          <h2 class="text-2xl font-black text-slate-800 dark:text-white mb-4 text-center">پروتکل‌های درمانی</h2>
+
+          <!-- Specific Description Text Required -->
+          <p class="text-center text-sm font-medium text-slate-600 dark:text-slate-300 max-w-sm leading-8 mb-8">
+            این بخش امکان جست‌وجو در مجموعه‌ای از بیماری‌ها، عارضه‌ها و علائم حیوانات را فراهم می‌کند و اطلاعات مربوط به روش‌های درمانی مختلف را در اختیار کاربر قرار می‌دهد.
+          </p>
+
+          <!-- Lock Card / CTA -->
+          <div class="w-full max-w-sm bg-surface-variant dark:bg-surface-darkVariant rounded-3xl p-6 border border-slate-200 dark:border-slate-700/50 relative overflow-hidden group shadow-sm hover:shadow-md transition-shadow">
+             
+             <!-- Decorative Background Lock Icon -->
+             <div class="absolute -right-6 -top-6 text-slate-200 dark:text-slate-700/30 text-9xl opacity-20 transform rotate-12 group-hover:rotate-6 transition-transform pointer-events-none">
+                <i class="fa-solid fa-lock"></i>
+             </div>
+
+             <div class="relative z-10">
+                <div class="flex items-center gap-3 mb-4">
+                   <div class="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+                      <i class="fa-solid fa-crown"></i>
+                   </div>
+                   <div>
+                      <h3 class="font-bold text-slate-800 dark:text-slate-200 text-sm">دسترسی ویژه (VIP)</h3>
+                      <p class="text-[10px] text-slate-500 dark:text-slate-400">بانک اطلاعاتی تخصصی</p>
+                   </div>
+                </div>
+
+                <p class="text-xs text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
+                   برای مشاهده جزئیات کامل پروتکل‌ها، دوز داروها و روش‌های تشخیص، لطفا اشتراک خود را فعال کنید.
+                </p>
+
+                <button (click)="handleUpgrade()" class="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-3.5 rounded-xl font-bold shadow-lg shadow-slate-900/20 active:scale-95 transition-all flex items-center justify-center gap-2">
+                  <span>{{ store.user() ? 'خرید اشتراک ویژه' : 'ورود و خرید اشتراک' }}</span>
+                  <i class="fa-solid fa-arrow-left"></i>
+                </button>
+             </div>
+          </div>
+
         </div>
       } @else {
-        <!-- Main Content View -->
+        <!-- Main Content View (Accessible only for Premium Users) -->
         <div>
           <!-- Header and Search Bar -->
           <div class="sticky top-[85px] z-30 mb-6">
