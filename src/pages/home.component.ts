@@ -118,14 +118,26 @@ interface AiAnalysisResult {
                          <div class="absolute inset-0 rounded-full bg-teal-400/10 z-0"></div>
                        }
                        
-                       <i 
-                         [class]="s.icon" 
-                         class="transition-all duration-300 z-10"
-                         [ngClass]="{
-                           'text-teal-500 dark:text-teal-400 scale-110': species() === s.id,
-                           'text-inherit scale-100': species() !== s.id
-                         }"
-                       ></i>
+                       @if (s.icon.includes('http')) {
+                          <img 
+                            [src]="s.icon" 
+                            class="w-[5.5rem] h-[5.5rem] object-contain transition-transform duration-300 z-10 select-none pointer-events-none"
+                            [ngClass]="{
+                              'scale-125 drop-shadow-sm': species() === s.id,
+                              'scale-100': species() !== s.id
+                            }"
+                            alt="{{s.label}}"
+                          >
+                       } @else {
+                          <i 
+                            [class]="s.icon" 
+                            class="transition-all duration-300 z-10"
+                            [ngClass]="{
+                              'text-teal-500 dark:text-teal-400 scale-110': species() === s.id,
+                              'text-inherit scale-100': species() !== s.id
+                            }"
+                          ></i>
+                       }
                     </div>
                     
                     <!-- Label -->
@@ -383,7 +395,7 @@ export class HomeComponent {
   years = Array.from({length: 15}, (_, i) => 1404 - i);
 
   speciesList = [
-    { id: 'dog', label: 'سگ', icon: 'fa-solid fa-dog' },
+    { id: 'dog', label: 'سگ', icon: 'https://i.postimg.cc/Yj969KH4/dog.png' },
     { id: 'cat', label: 'گربه', icon: 'fa-solid fa-cat' },
     { id: 'bird', label: 'پرندگان', icon: 'fa-solid fa-dove' },
     { id: 'rodent', label: 'جوندگان', icon: 'fa-solid fa-otter' },
