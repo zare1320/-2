@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, effect } from '@angular/core';
+import { Component, inject, signal, computed, effect, ViewChild, ElementRef } from '@angular/core';
 import { VetStoreService, Patient } from '../services/vet-store.service';
 import { FormsModule } from '@angular/forms';
 import { GeminiService } from '../services/gemini.service';
@@ -34,7 +34,7 @@ interface AiAnalysisResult {
     <div class="space-y-6 animate-fade-in pb-20" (click)="closeSuggestions()">
       
       <!-- New Header -->
-      <div class="text-center">
+      <div class="text-center pt-4">
          <div class="w-16 h-16 bg-surface-variant dark:bg-surface-darkVariant rounded-full flex items-center justify-center mx-auto mb-3 text-teal-600 dark:text-teal-400 shadow-inner">
            <i class="fa-solid fa-file-waveform text-2xl"></i>
          </div>
@@ -43,7 +43,7 @@ interface AiAnalysisResult {
       </div>
 
       <!-- Segmented Control -->
-      <div class="bg-surface-variant dark:bg-surface-darkVariant rounded-full p-1.5 flex items-center sticky top-[90px] z-30 shadow-sm">
+      <div class="bg-surface-variant dark:bg-surface-darkVariant rounded-full p-1.5 flex items-center sticky top-[90px] z-30 shadow-sm mx-4">
         <button 
           (click)="activeView.set('info')" 
           class="flex-1 py-3 text-sm font-bold rounded-full transition-colors"
@@ -78,93 +78,166 @@ interface AiAnalysisResult {
       <div>
         <!-- Patient Form View -->
         @if (activeView() === 'info') {
-          <div class="bg-surface-variant dark:bg-surface-darkVariant rounded-3xl p-6 shadow-none animate-fade-in space-y-5">
-            <div>
-              <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-3 px-1">گونه حیوان <span class="text-red-500">*</span></label>
-              <div class="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2 no-scrollbar">
+          <div class="animate-fade-in space-y-6">
+            
+            <!-- Modern Species Selector (Circular) -->
+            <div class="py-6 relative group">
+              
+              <!-- Gradient Fade Masks for Scroll Edges -->
+              <div class="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-surface-light dark:from-surface-dark to-transparent z-20 pointer-events-none"></div>
+              <div class="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-surface-light dark:from-surface-dark to-transparent z-20 pointer-events-none"></div>
+
+              <h3 class="text-center text-slate-400 dark:text-slate-500 text-xs font-bold mb-8 animate-fade-in">برای شروع، گونه حیوان را انتخاب کنید</h3>
+              
+              <!-- 
+                Scroll Container 
+                px-[calc(50%-2.5rem)] ensures the first and last items (w-20 = 5rem width) 
+                can be scrolled exactly to the center of the screen.
+              -->
+              <div class="flex items-center gap-6 overflow-x-auto pb-12 pt-4 px-[calc(50%-2.5rem)] no-scrollbar snap-x snap-mandatory scroll-smooth" #speciesContainer>
                 @for (s of speciesList; track s.id) {
-                  <button 
-                    (click)="setSpecies(s.id)"
-                    [class]="species() === s.id 
-                      ? 'bg-teal-600 text-white scale-105 shadow-lg shadow-teal-600/20' 
-                      : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 shadow-sm'"
-                    class="px-5 py-3 rounded-2xl text-sm font-bold whitespace-nowrap transition-all flex items-center gap-2 border border-transparent"
+                  <div 
+                    (click)="setSpecies(s.id); scrollItemIntoView($event.target)"
+                    class="snap-center shrink-0 flex flex-col items-center gap-4 cursor-pointer select-none relative transition-all duration-500"
+                    [class.scale-110]="species() === s.id"
+                    [class.opacity-40]="species() !== s.id"
+                    [class.opacity-100]="species() === s.id"
+                    [class.grayscale]="species() !== s.id"
+                    [class.grayscale-0]="species() === s.id"
                   >
-                    <i [class]="s.icon"></i>
-                    <span>{{s.label}}</span>
-                  </button>
+                    <!-- Circle Container -->
+                    <div 
+                       class="w-20 h-20 rounded-full flex items-center justify-center text-3xl transition-all duration-500 ease-out relative z-10"
+                       [ngClass]="{
+                         'bg-surface-light dark:bg-surface-dark ring-4 ring-teal-400 ring-offset-4 ring-offset-surface-light dark:ring-offset-surface-dark shadow-[0_0_25px_rgba(45,212,191,0.6)]': species() === s.id,
+                         'bg-surface-variant dark:bg-surface-darkVariant text-slate-400 dark:text-slate-600 hover:bg-slate-200 dark:hover:bg-slate-700': species() !== s.id
+                       }"
+                    >
+                       <!-- Active Indicator Background -->
+                       @if (species() === s.id) {
+                         <div class="absolute inset-0 rounded-full bg-teal-400/10 z-0"></div>
+                       }
+                       
+                       <i 
+                         [class]="s.icon" 
+                         class="transition-all duration-300 z-10"
+                         [ngClass]="{
+                           'text-teal-500 dark:text-teal-400 scale-110': species() === s.id,
+                           'text-inherit scale-100': species() !== s.id
+                         }"
+                       ></i>
+                    </div>
+                    
+                    <!-- Label -->
+                    <span 
+                       class="text-sm font-black transition-all duration-300 absolute -bottom-8 whitespace-nowrap"
+                       [ngClass]="{
+                         'text-teal-700 dark:text-teal-300 translate-y-0 opacity-100': species() === s.id,
+                         'text-slate-400 dark:text-slate-600 translate-y-[-5px] opacity-0': species() !== s.id
+                       }"
+                    >
+                       {{ s.label }}
+                    </span>
+                  </div>
                 }
               </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
-              <!-- Inputs with updated style -->
-              <div class="col-span-1 group">
-                <div class="bg-white dark:bg-slate-800 rounded-t-2xl px-4 pt-3 pb-1 border-b-2 border-slate-200 dark:border-slate-700 focus-within:border-teal-600 dark:focus-within:border-teal-400 transition-colors">
-                  <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">نام <span class="text-red-500">*</span></label>
-                  <input [(ngModel)]="name" type="text" class="w-full bg-transparent text-slate-800 dark:text-slate-100 font-medium focus:outline-none placeholder-transparent">
-                </div>
-              </div>
-
-              <div class="col-span-1 group relative" (click)="$event.stopPropagation()">
-                <div class="bg-white dark:bg-slate-800 rounded-t-2xl px-4 pt-3 pb-1 border-b-2 border-slate-200 dark:border-slate-700 focus-within:border-teal-600 dark:focus-within:border-teal-400 transition-colors">
-                  <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">نژاد</label>
-                  <input [ngModel]="breed()" (ngModelChange)="onBreedInput($event)" (focus)="onBreedFocus()" type="text" class="w-full bg-transparent text-slate-800 dark:text-slate-100 font-medium focus:outline-none placeholder-transparent" autocomplete="off">
-                </div>
-                @if (showBreedSuggestions() && filteredBreeds().length > 0) {
-                  <div class="absolute top-full left-0 right-0 bg-white dark:bg-slate-800 rounded-b-2xl shadow-xl z-50 max-h-48 overflow-y-auto border-x border-b border-slate-200 dark:border-slate-700 mt-[-2px]">
-                     @for (b of filteredBreeds(); track b.id) {
-                       <button (click)="selectBreed(b)" class="w-full text-right px-4 py-2 hover:bg-teal-50 dark:hover:bg-slate-700 text-sm text-slate-700 dark:text-slate-200 border-b border-slate-100 dark:border-slate-700/50 last:border-0 flex justify-between items-center group/item">
-                          <span>{{ b.name.fa }}</span>
-                          <span class="text-xs text-slate-400 opacity-0 group-hover/item:opacity-100 transition-opacity">{{ b.name.en }}</span>
-                       </button>
-                     }
+            <div class="bg-surface-variant dark:bg-surface-darkVariant rounded-3xl p-6 shadow-none space-y-5 mx-4">
+              <div class="grid grid-cols-2 gap-4">
+                <!-- Inputs with updated style -->
+                <div class="col-span-1 group">
+                  <div class="bg-white dark:bg-slate-800 rounded-t-2xl px-4 pt-3 pb-1 border-b-2 border-slate-200 dark:border-slate-700 focus-within:border-teal-600 dark:focus-within:border-teal-400 transition-colors">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">نام <span class="text-red-500">*</span></label>
+                    <input [(ngModel)]="name" type="text" class="w-full bg-transparent text-slate-800 dark:text-slate-100 font-medium focus:outline-none placeholder-transparent">
                   </div>
-                }
-              </div>
-
-              <div class="col-span-1 group">
-                <div class="bg-white dark:bg-slate-800 rounded-t-2xl px-4 pt-3 pb-1 border-b-2 border-slate-200 dark:border-slate-700 focus-within:border-teal-600 dark:focus-within:border-teal-400 transition-colors">
-                  <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">وزن (kg) <span class="text-red-500">*</span></label>
-                  <input [(ngModel)]="weight" type="number" class="w-full bg-transparent text-slate-800 dark:text-slate-100 font-medium focus:outline-none placeholder-transparent">
                 </div>
-              </div>
 
-              <div class="col-span-1 group">
-                <div class="bg-white dark:bg-slate-800 rounded-t-2xl px-4 pt-3 pb-1 border-b-2 border-slate-200 dark:border-slate-700 focus-within:border-teal-600 dark:focus-within:border-teal-400 transition-colors">
-                  <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">سن (سال)</label>
-                  <input [(ngModel)]="age" type="number" class="w-full bg-transparent text-slate-800 dark:text-slate-100 font-medium focus:outline-none placeholder-transparent">
+                <div class="col-span-1 group relative" (click)="$event.stopPropagation()">
+                  <div class="bg-white dark:bg-slate-800 rounded-t-2xl px-4 pt-3 pb-1 border-b-2 border-slate-200 dark:border-slate-700 focus-within:border-teal-600 dark:focus-within:border-teal-400 transition-colors">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">نژاد</label>
+                    <input [ngModel]="breed()" (ngModelChange)="onBreedInput($event)" (focus)="onBreedFocus()" type="text" class="w-full bg-transparent text-slate-800 dark:text-slate-100 font-medium focus:outline-none placeholder-transparent" autocomplete="off">
+                  </div>
+                  @if (showBreedSuggestions() && filteredBreeds().length > 0) {
+                    <div class="absolute top-full left-0 right-0 bg-white dark:bg-slate-800 rounded-b-2xl shadow-xl z-50 max-h-48 overflow-y-auto border-x border-b border-slate-200 dark:border-slate-700 mt-[-2px]">
+                       @for (b of filteredBreeds(); track b.id) {
+                         <button (click)="selectBreed(b)" class="w-full text-right px-4 py-2 hover:bg-teal-50 dark:hover:bg-slate-700 text-sm text-slate-700 dark:text-slate-200 border-b border-slate-100 dark:border-slate-700/50 last:border-0 flex justify-between items-center group/item">
+                            <span>{{ b.name.fa }}</span>
+                            <span class="text-xs text-slate-400 opacity-0 group-hover/item:opacity-100 transition-opacity">{{ b.name.en }}</span>
+                         </button>
+                       }
+                    </div>
+                  }
                 </div>
-              </div>
-              
-              <!-- ... Other form fields ... -->
-              <div class="col-span-2 space-y-3 pt-2">
-                 <!-- Vaccination -->
-                 <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 px-1 flex items-center gap-2">
-                   <i class="fa-solid fa-syringe text-teal-500"></i> وضعیت واکسیناسیون
-                </h3>
-                <!-- ... content ... -->
-              </div>
-              
-               <div class="col-span-2 space-y-3">
-                 <!-- Deworming -->
-                 <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 px-1 flex items-center gap-2">
-                   <i class="fa-solid fa-shield-virus text-orange-500"></i> وضعیت انگل‌تراپی
-                 </h3>
-                <!-- ... content ... -->
-              </div>
-              
-              <div class="col-span-2 group">
-                <div class="bg-white dark:bg-slate-800 rounded-t-2xl px-4 pt-3 pb-1 border-b-2 border-slate-200 dark:border-slate-700 focus-within:border-teal-600 dark:focus-within:border-teal-400 transition-colors">
-                  <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">علائم بالینی</label>
-                  <textarea [(ngModel)]="symptoms" rows="2" class="w-full bg-transparent text-slate-800 dark:text-slate-100 font-medium focus:outline-none resize-none placeholder-transparent"></textarea>
+
+                <div class="col-span-1 group">
+                  <div class="bg-white dark:bg-slate-800 rounded-t-2xl px-4 pt-3 pb-1 border-b-2 border-slate-200 dark:border-slate-700 focus-within:border-teal-600 dark:focus-within:border-teal-400 transition-colors">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">وزن (kg) <span class="text-red-500">*</span></label>
+                    <input [(ngModel)]="weight" type="number" class="w-full bg-transparent text-slate-800 dark:text-slate-100 font-medium focus:outline-none placeholder-transparent">
+                  </div>
+                </div>
+
+                <div class="col-span-1 group">
+                  <div class="bg-white dark:bg-slate-800 rounded-t-2xl px-4 pt-3 pb-1 border-b-2 border-slate-200 dark:border-slate-700 focus-within:border-teal-600 dark:focus-within:border-teal-400 transition-colors">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">سن (سال)</label>
+                    <input [(ngModel)]="age" type="number" class="w-full bg-transparent text-slate-800 dark:text-slate-100 font-medium focus:outline-none placeholder-transparent">
+                  </div>
+                </div>
+                
+                <!-- ... Other form fields ... -->
+                <div class="col-span-2 space-y-3 pt-2">
+                   <!-- Vaccination -->
+                   <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 px-1 flex items-center gap-2">
+                     <i class="fa-solid fa-syringe text-teal-500"></i> وضعیت واکسیناسیون
+                  </h3>
+                  <!-- Simplified for brevity, same as previous but kept clean -->
+                  <div class="grid grid-cols-2 gap-3">
+                     <div class="bg-white dark:bg-slate-800 rounded-xl px-3 py-2 border border-slate-200 dark:border-slate-700">
+                        <select [(ngModel)]="vaccineType" class="w-full bg-transparent text-xs font-bold text-slate-700 dark:text-slate-200 outline-none">
+                            <option value="">نوع واکسن...</option>
+                            <option value="Polyvalent">چندگانه (Polyvalent)</option>
+                            <option value="Rabies">هاری (Rabies)</option>
+                        </select>
+                     </div>
+                     <div class="bg-white dark:bg-slate-800 rounded-xl px-3 py-2 border border-slate-200 dark:border-slate-700 flex items-center gap-2">
+                         <span class="text-[10px] text-slate-400">تاریخ:</span>
+                         <input [(ngModel)]="vacYear" placeholder="1402" type="number" class="w-full bg-transparent text-xs font-bold outline-none text-center">
+                     </div>
+                  </div>
+                </div>
+                
+                 <div class="col-span-2 space-y-3">
+                   <!-- Deworming -->
+                   <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 px-1 flex items-center gap-2">
+                     <i class="fa-solid fa-shield-virus text-orange-500"></i> وضعیت انگل‌تراپی
+                   </h3>
+                   <div class="grid grid-cols-2 gap-3">
+                     <div class="bg-white dark:bg-slate-800 rounded-xl px-3 py-2 border border-slate-200 dark:border-slate-700">
+                        <select [(ngModel)]="dewormerType" class="w-full bg-transparent text-xs font-bold text-slate-700 dark:text-slate-200 outline-none">
+                            <option value="">نوع انگل‌تراپی...</option>
+                            <option value="Broad-spectrum">وسی‌الطیف</option>
+                            <option value="Specific">اختصاصی</option>
+                        </select>
+                     </div>
+                     <div class="bg-white dark:bg-slate-800 rounded-xl px-3 py-2 border border-slate-200 dark:border-slate-700 flex items-center gap-2">
+                         <span class="text-[10px] text-slate-400">تاریخ:</span>
+                         <input [(ngModel)]="dewormYear" placeholder="1402" type="number" class="w-full bg-transparent text-xs font-bold outline-none text-center">
+                     </div>
+                  </div>
+                </div>
+                
+                <div class="col-span-2 group">
+                  <div class="bg-white dark:bg-slate-800 rounded-t-2xl px-4 pt-3 pb-1 border-b-2 border-slate-200 dark:border-slate-700 focus-within:border-teal-600 dark:focus-within:border-teal-400 transition-colors">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">علائم بالینی</label>
+                    <textarea [(ngModel)]="symptoms" rows="2" class="w-full bg-transparent text-slate-800 dark:text-slate-100 font-medium focus:outline-none resize-none placeholder-transparent"></textarea>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         } @else {
           <!-- AI Analysis View -->
-          <div class="bg-indigo-50 dark:bg-indigo-950/30 rounded-3xl p-6 border border-indigo-100 dark:border-indigo-900/50 animate-fade-in space-y-4">
+          <div class="mx-4 bg-indigo-50 dark:bg-indigo-950/30 rounded-3xl p-6 border border-indigo-100 dark:border-indigo-900/50 animate-fade-in space-y-4">
             <div class="border-2 border-dashed border-indigo-200 dark:border-indigo-800 bg-white/50 dark:bg-slate-900/50 rounded-2xl p-6 text-center cursor-pointer hover:bg-white dark:hover:bg-slate-800 transition-all relative group">
               <input type="file" (change)="onFileSelected($event)" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
               @if (imagePreview()) {
@@ -374,6 +447,18 @@ export class HomeComponent {
     this.species.set(id);
     this.breed.set('');
     this.filteredBreeds.set([]);
+  }
+
+  scrollItemIntoView(target: any) {
+    // Optional helper if snap scroll isn't enough for click-to-center logic
+    // Usually snap-x snap-center handles it on scroll, but for click we might want to animate
+    if (target instanceof HTMLElement) {
+      // Find the parent item container if target is icon or label
+      const item = target.closest('.snap-center');
+      if (item) {
+        item.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+    }
   }
 
   // --- Breed Autocomplete ---

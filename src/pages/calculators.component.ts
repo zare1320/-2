@@ -51,21 +51,21 @@ interface PrescriptionItem {
 
           <!-- Menu Grid -->
           <div class="grid grid-cols-1 gap-4">
-             <!-- 1. Drug Dose -->
+             <!-- 1. Drug Dose (FREE) -->
              <button (click)="openTool('drug')" class="bg-surface-variant dark:bg-surface-darkVariant p-5 rounded-3xl flex items-center justify-between hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors group">
                 <div class="flex items-center gap-4">
                    <div class="w-12 h-12 rounded-2xl bg-teal-100 dark:bg-teal-900/50 text-teal-600 dark:text-teal-400 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
                       <i class="fa-solid fa-pills"></i>
                    </div>
                    <div class="text-start">
-                      <h3 class="font-bold text-lg text-slate-800 dark:text-slate-100">محاسبه دوز دارو دستی</h3>
+                      <h3 class="font-bold text-lg text-slate-800 dark:text-slate-100">محاسبه دوز دارو </h3>
                       <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">محاسبه و ایجاد نسخه دارویی</p>
                    </div>
                 </div>
                 <i class="fa-solid fa-chevron-left text-slate-400"></i>
              </button>
 
-             <!-- 2. Anesthesia -->
+             <!-- 2. Anesthesia (PREMIUM) -->
              <button (click)="openTool('anes')" class="bg-surface-variant dark:bg-surface-darkVariant p-5 rounded-3xl flex items-center justify-between hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors group">
                 <div class="flex items-center gap-4">
                    <div class="w-12 h-12 rounded-2xl bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
@@ -82,7 +82,7 @@ interface PrescriptionItem {
                 </div>
              </button>
 
-             <!-- 3. Emergency Drugs -->
+             <!-- 3. Emergency Drugs (PREMIUM) -->
              <button (click)="openTool('emergency')" class="bg-surface-variant dark:bg-surface-darkVariant p-5 rounded-3xl flex items-center justify-between hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors group">
                 <div class="flex items-center gap-4">
                    <div class="w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
@@ -99,7 +99,7 @@ interface PrescriptionItem {
                 </div>
              </button>
 
-             <!-- 4. Calories -->
+             <!-- 4. Calories (PREMIUM) -->
              <button (click)="openTool('calories')" class="bg-surface-variant dark:bg-surface-darkVariant p-5 rounded-3xl flex items-center justify-between hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors group">
                 <div class="flex items-center gap-4">
                    <div class="w-12 h-12 rounded-2xl bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
@@ -116,7 +116,7 @@ interface PrescriptionItem {
                 </div>
              </button>
 
-             <!-- 5. Toxicity -->
+             <!-- 5. Toxicity (PREMIUM) -->
              <button (click)="openTool('toxicity')" class="bg-surface-variant dark:bg-surface-darkVariant p-5 rounded-3xl flex items-center justify-between hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors group">
                 <div class="flex items-center gap-4">
                    <div class="w-12 h-12 rounded-2xl bg-yellow-100 dark:bg-yellow-900/50 text-yellow-600 dark:text-yellow-400 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
@@ -133,7 +133,7 @@ interface PrescriptionItem {
                 </div>
              </button>
              
-             <!-- 6. Glucose -->
+             <!-- 6. Glucose (PREMIUM) -->
              <button (click)="openTool('glucose')" class="bg-surface-variant dark:bg-surface-darkVariant p-5 rounded-3xl flex items-center justify-between hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors group">
                 <div class="flex items-center gap-4">
                    <div class="w-12 h-12 rounded-2xl bg-pink-100 dark:bg-pink-900/50 text-pink-600 dark:text-pink-400 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
@@ -150,7 +150,7 @@ interface PrescriptionItem {
                 </div>
              </button>
 
-             <!-- 7. Converter -->
+             <!-- 7. Converter (PREMIUM) -->
              <button (click)="openTool('converter')" class="bg-surface-variant dark:bg-surface-darkVariant p-5 rounded-3xl flex items-center justify-between hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors group">
                 <div class="flex items-center gap-4">
                    <div class="w-12 h-12 rounded-2xl bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
@@ -194,7 +194,7 @@ interface PrescriptionItem {
 
            <div class="p-5 max-w-lg mx-auto">
              
-             <!-- 1. DRUG TOOL CONTENT -->
+             <!-- 1. DRUG TOOL CONTENT (FREE) -->
              @if (activeTool() === 'drug') {
                 <div class="space-y-4 animate-fade-in">
                    <p class="text-[10px] text-slate-500 font-bold mb-1 opacity-70 uppercase tracking-wide">Enter patient and medication details below</p>
@@ -313,7 +313,7 @@ interface PrescriptionItem {
                         </button>
                    </div>
 
-                   <!-- Prescription List (New Section) -->
+                   <!-- Prescription List -->
                    @if (prescriptionList().length > 0) {
                        <div class="mt-8 pt-6 border-t border-slate-200 dark:border-slate-700 animate-slide-up">
                            <div class="flex items-center justify-between mb-4">
@@ -352,16 +352,23 @@ interface PrescriptionItem {
                 </div>
              }
              
-             <!-- Other tools content skipped for brevity... -->
-             @if (activeTool() === 'anes') {
-                 <!-- Content remains same -->
-                 <div class="animate-fade-in"><p class="text-center p-4">محتوای این بخش تغییری نکرده است.</p></div>
+             <!-- ALL OTHER TOOLS: PREMIUM CHECK -->
+             @if (activeTool() !== 'drug') {
+                 @if (store.isPremium()) {
+                    <!-- PREMIUM CONTENT RENDER -->
+                    @if (activeTool() === 'anes') {
+                        <div class="animate-fade-in"><p class="text-center p-4">محتوای این بخش تغییری نکرده است.</p></div>
+                    }
+                    @if (activeTool() === 'emergency') { <div class="animate-fade-in"><p class="text-center p-4">محتوای این بخش تغییری نکرده است.</p></div> }
+                    @if (activeTool() === 'calories') { <div class="animate-fade-in"><p class="text-center p-4">محتوای این بخش تغییری نکرده است.</p></div> }
+                    @if (activeTool() === 'toxicity') { <div class="animate-fade-in"><p class="text-center p-4">محتوای این بخش تغییری نکرده است.</p></div> }
+                    @if (activeTool() === 'glucose') { <div class="animate-fade-in"><p class="text-center p-4">محتوای این بخش تغییری نکرده است.</p></div> }
+                    @if (activeTool() === 'converter') { <div class="animate-fade-in"><p class="text-center p-4">محتوای این بخش تغییری نکرده است.</p></div> }
+                 } @else {
+                     <!-- LOCKED SCREEN -->
+                     <ng-container *ngTemplateOutlet="premiumLock"></ng-container>
+                 }
              }
-             @if (activeTool() === 'emergency') { <div class="animate-fade-in"><p class="text-center p-4">محتوای این بخش تغییری نکرده است.</p></div> }
-             @if (activeTool() === 'calories') { <div class="animate-fade-in"><p class="text-center p-4">محتوای این بخش تغییری نکرده است.</p></div> }
-             @if (activeTool() === 'toxicity') { <div class="animate-fade-in"><p class="text-center p-4">محتوای این بخش تغییری نکرده است.</p></div> }
-             @if (activeTool() === 'glucose') { <div class="animate-fade-in"><p class="text-center p-4">محتوای این بخش تغییری نکرده است.</p></div> }
-             @if (activeTool() === 'converter') { <div class="animate-fade-in"><p class="text-center p-4">محتوای این بخش تغییری نکرده است.</p></div> }
 
            </div>
         </div>

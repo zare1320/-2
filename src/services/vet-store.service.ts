@@ -1,257 +1,219 @@
-import { Injectable, signal, computed, effect } from '@angular/core';
+import { Injectable, signal, computed, effect, inject } from '@angular/core';
 import { Router } from '@angular/router';
+
+// --- INTERFACES & TYPES ---
+
+export interface User {
+  uid: string;
+  displayName?: string;
+  email?: string;
+  phoneNumber?: string;
+  photoUrl?: string;
+  medicalCode?: string;
+  workplace?: string;
+  isProfileComplete?: boolean;
+}
 
 export interface Patient {
   id: string;
   name: string;
   species: string;
   breed: string;
-  weight: number; // kg
-  age: number; // years
-  sex?: string; // 'Male' | 'Female'
+  weight: number;
+  age: number;
+  sex?: string;
   isSterilized?: boolean;
-  
-  // Vaccination
   vaccineType?: string;
   vaccinationDate?: string;
-  vaccinationStatus?: string; // 'Valid' | 'Expired' | 'Unknown'
-
-  // Deworming
+  vaccinationStatus?: string;
   dewormerType?: string;
   dewormingDate?: string;
-  dewormingStatus?: string; // 'Valid' | 'Expired' | 'Unknown'
-
+  dewormingStatus?: string;
   symptoms: string;
   diagnosis?: string;
   date: string;
 }
 
-export interface User {
-  id: string;
-  displayName: string;
-  phoneNumber?: string;
-  email?: string;
-  photoUrl?: string;
-  // Profile Fields
-  fullName?: string;
-  gender?: string; // 'Male' | 'Female' | 'Prefer not to say'
-  workplace?: string; // University or Work
-  fieldOfStudy?: string;
-  medicalCode?: string; // Vet Code or Student Code
-  isProfileComplete?: boolean;
-}
+export type AppTheme = 'light' | 'dark' | 'system';
 
-export interface AppNotification {
+export interface Notification {
   message: string;
   type: 'success' | 'error' | 'info';
 }
 
-export type AppLanguage = 'fa' | 'en';
-export type AppTheme = 'light' | 'dark' | 'system';
+// --- TRANSLATIONS ---
+
+const translations = {
+  fa: {
+    app_title: 'دستیار هوشمند دامپزشک',
+    home: 'خانه',
+    protocols: 'پروتکل‌ها',
+    calculators: 'محاسبه‌گر',
+    profile: 'پرونده‌ها',
+    settings: 'تنظیمات',
+    login_required: 'نیاز به ورود به حساب',
+    login_msg: 'برای دسترسی به امکانات ویژه، وارد شوید یا ثبت‌نام کنید.',
+    login_btn: 'ورود / ثبت‌نام',
+    send_code: 'ارسال کد تایید',
+    verify: 'تایید و ورود',
+    google_auth: 'یا',
+    logout: 'خروج از حساب',
+    theme: 'پوسته برنامه',
+    theme_light: 'روشن',
+    theme_dark: 'تاریک',
+    theme_system: 'سیستم',
+  },
+  en: {
+    app_title: 'Smart Vet Assistant',
+    home: 'Home',
+    protocols: 'Protocols',
+    calculators: 'Calculators',
+    profile: 'Records',
+    settings: 'Settings',
+    login_required: 'Login Required',
+    login_msg: 'Log in or sign up to access special features.',
+    login_btn: 'Login / Sign Up',
+    send_code: 'Send Code',
+    verify: 'Verify & Login',
+    google_auth: 'OR',
+    logout: 'Logout',
+    theme: 'App Theme',
+    theme_light: 'Light',
+    theme_dark: 'Dark',
+    theme_system: 'System',
+  }
+};
+
+
+// --- SERVICE IMPLEMENTATION ---
 
 @Injectable({
   providedIn: 'root'
 })
 export class VetStoreService {
-  // State Signals
-  readonly user = signal<User | null>(null);
-  readonly isPremium = signal<boolean>(false);
-  readonly currentLanguage = signal<AppLanguage>('fa');
-  readonly theme = signal<AppTheme>('system');
-  readonly currentPatient = signal<Patient | null>(null);
-  readonly savedPatients = signal<Patient[]>([]);
-  readonly notification = signal<AppNotification | null>(null);
-  
-  // Translation Dictionary
-  private translations = {
-    fa: {
-      app_title: 'دستیار هوشمند دامپزشک',
-      home: 'خانه',
-      protocols: 'پروتکل‌ها',
-      calculators: 'محاسبه‌گر',
-      profile: 'پرونده‌ها',
-      settings: 'تنظیمات',
-      species: 'گونه حیوان',
-      analyze: 'تحلیل هوشمند (AI)',
-      save: 'ذخیره پرونده',
-      premium_lock: 'نسخه ویژه',
-      login_required: 'ورود الزامی است',
-      login_msg: 'برای دسترسی به امکانات ویژه لطفا وارد حساب کاربری شوید.',
-      login_btn: 'ورود / ثبت نام',
-      logout: 'خروج از حساب',
-      upgrade: 'ارتقا به نسخه حرفه‌ای',
-      phone_auth: 'ورود با شماره موبایل',
-      google_auth: 'ورود با گوگل',
-      enter_phone: 'شماره موبایل خود را وارد کنید',
-      enter_code: 'کد تایید را وارد کنید',
-      send_code: 'ارسال کد',
-      verify: 'تایید و ورود',
-      ai_diagnosis: 'تشخیص هوشمند با Gemini',
-      theme: 'پوسته',
-      theme_light: 'روشن',
-      theme_dark: 'تیره',
-      theme_system: 'سیستم'
-    },
-    en: {
-      app_title: 'Smart Vet Assistant',
-      home: 'Home',
-      protocols: 'Protocols',
-      calculators: 'Calculators',
-      profile: 'Records',
-      settings: 'Settings',
-      species: 'Species',
-      analyze: 'AI Analysis',
-      save: 'Save Record',
-      premium_lock: 'Premium',
-      login_required: 'Login Required',
-      login_msg: 'Please login to access premium features.',
-      login_btn: 'Login / Register',
-      logout: 'Logout',
-      upgrade: 'Upgrade to Pro',
-      phone_auth: 'Phone Login',
-      google_auth: 'Google Login',
-      enter_phone: 'Enter your phone number',
-      enter_code: 'Enter verification code',
-      send_code: 'Send Code',
-      verify: 'Verify & Login',
-      ai_diagnosis: 'Gemini Diagnosis',
-      theme: 'Theme',
-      theme_light: 'Light',
-      theme_dark: 'Dark',
-      theme_system: 'System'
-    }
-  };
+  private router = inject(Router);
 
-  // Computed Translations
-  readonly t = computed(() => this.translations[this.currentLanguage()]);
+  // --- STATE SIGNALS ---
+  user = signal<User | null>(null);
+  isPremium = signal(false);
+  currentLanguage = signal<'fa' | 'en'>('fa');
+  theme = signal<AppTheme>('system');
+  savedPatients = signal<Patient[]>([]);
+  currentPatient = signal<Patient | null>(null);
+  notification = signal<Notification | null>(null);
+  
+  // --- COMPUTED SIGNALS ---
+  t = computed(() => translations[this.currentLanguage()]);
 
   constructor() {
-    this.loadFromStorage();
+    this.loadStateFromStorage();
     
-    // Auto-save effects
+    // --- EFFECTS for LOCALSTORAGE PERSISTENCE ---
+    effect(() => this.saveToStorage('vet_user', this.user()));
+    effect(() => this.saveToStorage('vet_is_premium', this.isPremium()));
+    effect(() => this.saveToStorage('vet_language', this.currentLanguage()));
+    effect(() => this.saveToStorage('vet_patients', this.savedPatients()));
+    effect(() => this.saveToStorage('vet_theme', this.theme()));
+    
+    // Effect to apply theme to the document
     effect(() => {
-      localStorage.setItem('vet_is_premium', JSON.stringify(this.isPremium()));
-    });
-    effect(() => {
-      localStorage.setItem('vet_patients', JSON.stringify(this.savedPatients()));
-    });
-    effect(() => {
-      localStorage.setItem('vet_user', JSON.stringify(this.user()));
-    });
-    effect(() => {
-      localStorage.setItem('vet_theme', this.theme());
-      this.applyTheme();
-    });
-
-    // Listen for system theme changes
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-      if (this.theme() === 'system') {
-        this.applyTheme();
+      const currentTheme = this.theme();
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (currentTheme === 'dark' || (currentTheme === 'system' && prefersDark)) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
       }
     });
   }
 
-  private loadFromStorage() {
-    const storedPremium = localStorage.getItem('vet_is_premium');
-    if (storedPremium) this.isPremium.set(JSON.parse(storedPremium));
-
-    const storedPatients = localStorage.getItem('vet_patients');
-    if (storedPatients) this.savedPatients.set(JSON.parse(storedPatients));
-
-    const storedUser = localStorage.getItem('vet_user');
-    if (storedUser) this.user.set(JSON.parse(storedUser));
-
-    const storedTheme = localStorage.getItem('vet_theme') as AppTheme;
-    if (storedTheme) this.theme.set(storedTheme);
+  // --- LOCALSTORAGE HELPERS ---
+  private loadStateFromStorage() {
+    this.user.set(this.getFromStorage('vet_user'));
+    this.isPremium.set(this.getFromStorage('vet_is_premium') || false);
+    this.currentLanguage.set(this.getFromStorage('vet_language') || 'fa');
+    this.savedPatients.set(this.getFromStorage('vet_patients') || []);
+    this.theme.set(this.getFromStorage('vet_theme') || 'system');
   }
 
-  // --- Theme Logic ---
-  setTheme(t: AppTheme) {
-    this.theme.set(t);
+  private getFromStorage<T>(key: string): T | null {
+    const item = localStorage.getItem(key);
+    return item ? JSON.parse(item) : null;
   }
 
-  private applyTheme() {
-    const t = this.theme();
-    const isDark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
+  private saveToStorage(key: string, value: any) {
+    localStorage.setItem(key, JSON.stringify(value));
+  }
+  
+  // --- NOTIFICATIONS ---
+  showNotification(message: string, type: 'success' | 'error' | 'info') {
+    this.notification.set({ message, type });
+    setTimeout(() => this.notification.set(null), 3000);
+  }
+
+  // --- PATIENT MANAGEMENT ---
+  addPatient(patient: Patient) {
+    this.savedPatients.update(patients => [patient, ...patients]);
+  }
+
+  removePatient(patientId: string) {
+    this.savedPatients.update(p => p.filter(patient => patient.id !== patientId));
+    if (this.currentPatient()?.id === patientId) {
+      this.currentPatient.set(null);
     }
   }
 
-  // --- Patient Logic ---
-  setPatient(patient: Patient) {
+  setPatient(patient: Patient | null) {
     this.currentPatient.set(patient);
   }
 
-  addPatient(patient: Patient) {
-    this.savedPatients.update(list => [patient, ...list]);
+  // --- AUTHENTICATION (MOCKED) ---
+  async loginWithPhone(phone: string): Promise<void> {
+    console.log(`Sending OTP to ${phone}`);
+    await new Promise(res => setTimeout(res, 1000)); // Simulate API call
   }
 
-  removePatient(id: string) {
-    this.savedPatients.update(list => list.filter(p => p.id !== id));
-  }
-
-  // --- Subscription Logic ---
-  togglePremium() {
-    if (!this.user()) return; // Cannot be premium without user
-    this.isPremium.update(v => !v);
-  }
-
-  // --- Notification Logic ---
-  showNotification(message: string, type: 'success' | 'error' | 'info' = 'success') {
-    this.notification.set({ message, type });
-    setTimeout(() => {
-      this.notification.set(null);
-    }, 3000);
-  }
-
-  // --- Auth & User Logic ---
-  
-  updateUser(data: Partial<User>) {
-    this.user.update(currentUser => {
-      if (!currentUser) return null;
-      return { ...currentUser, ...data };
-    });
-  }
-
-  async loginWithPhone(phoneNumber: string): Promise<boolean> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    return true; // Code sent
-  }
-
-  async verifyOtp(phoneNumber: string, code: string): Promise<boolean> {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    if (code === '12345') { // Mock OTP
-      this.user.set({
-        id: 'user_' + Date.now(),
-        displayName: 'Dr. ' + phoneNumber.slice(-4),
-        phoneNumber: phoneNumber
-      });
+  async verifyOtp(phone: string, otp: string): Promise<boolean> {
+    await new Promise(res => setTimeout(res, 1000));
+    if (otp === '12345') { // Mock OTP check
+      this.user.set({ uid: phone, phoneNumber: phone, displayName: 'کاربر جدید' });
       return true;
     }
     return false;
   }
 
   async loginWithGoogle(): Promise<void> {
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise(res => setTimeout(res, 500));
     this.user.set({
-      id: 'google_' + Date.now(),
-      displayName: 'Dr. John Doe',
-      email: 'doctor@vetclinic.com',
-      photoUrl: 'https://ui-avatars.com/api/?name=John+Doe&background=0D8ABC&color=fff'
+      uid: 'google_user_123',
+      displayName: 'کاربر گوگل',
+      email: 'user@google.com',
+      photoUrl: 'https://picsum.photos/100'
     });
+    this.isPremium.set(true); // Grant premium for google login for demo
   }
 
   logout() {
     this.user.set(null);
-    this.isPremium.set(false); // Reset premium on logout
+    this.isPremium.set(false);
+    this.router.navigate(['/login']);
+  }
+  
+  updateUser(data: Partial<User>) {
+      this.user.update(u => u ? { ...u, ...data } : null);
   }
 
+  // --- SETTINGS ---
+  setTheme(theme: AppTheme) {
+    this.theme.set(theme);
+  }
+  
   toggleLanguage() {
-    this.currentLanguage.update(l => l === 'fa' ? 'en' : 'fa');
+    this.currentLanguage.update(lang => lang === 'fa' ? 'en' : 'fa');
+  }
+
+  // For testing purposes
+  togglePremium() {
+    this.isPremium.update(p => !p);
   }
 }
