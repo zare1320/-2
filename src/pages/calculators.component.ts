@@ -3,7 +3,7 @@ import { VetStoreService } from '../services/vet-store.service';
 import { FormsModule } from '@angular/forms';
 import { NgClass, DecimalPipe, NgTemplateOutlet, NgStyle } from '@angular/common';
 import { Router } from '@angular/router';
-import { drugDatabase, DrugEntry } from '../data/drug-database';
+import { drugDatabase, DrugEntry, DrugForm } from '../data/drug-database';
 
 interface PrescriptionItem {
     id: string;
@@ -12,6 +12,7 @@ interface PrescriptionItem {
     concentration: number;
     weight: number;
     volume: string;
+    unit: string; // Added unit (ml, tab, g)
     route: string;
     frequency: string;
     instructions: string;
@@ -255,16 +256,32 @@ interface PrescriptionItem {
                    </div>
 
                    <div class="grid grid-cols-2 gap-3">
+                      <!-- Route Selection -->
                       <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-teal-500 transition-colors shadow-sm">
                           <label class="text-[9px] font-bold text-slate-400 uppercase">روش مصرف</label>
                           <select [(ngModel)]="route" class="w-full bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none">
                               <option value="" disabled selected>انتخاب کنید...</option>
-                              <option value="IV" class="dark:bg-slate-800">وریدی (IV)</option>
-                              <option value="IM" class="dark:bg-slate-800">عضلانی (IM)</option>
-                              <option value="SC" class="dark:bg-slate-800">زیرجلدی (SC)</option>
-                              <option value="PO" class="dark:bg-slate-800">خوراکی (PO)</option>
+                              <optgroup label="تزریقی" class="bg-slate-100 dark:bg-slate-900">
+                                <option value="IV">وریدی (IV)</option>
+                                <option value="IM">عضلانی (IM)</option>
+                                <option value="SC">زیرپوستی (SC)</option>
+                              </optgroup>
+                              <optgroup label="خوراکی" class="bg-slate-100 dark:bg-slate-900">
+                                <option value="Tablet">قرص (Tablet)</option>
+                                <option value="Syrup">شربت (Syrup)</option>
+                              </optgroup>
+                              <optgroup label="موضعی" class="bg-slate-100 dark:bg-slate-900">
+                                <option value="Ointment">پماد (Ointment)</option>
+                                <option value="Spray">اسپری (Spray)</option>
+                                <option value="Shampoo">شامپو (Shampoo)</option>
+                              </optgroup>
+                              <optgroup label="سایر" class="bg-slate-100 dark:bg-slate-900">
+                                <option value="Intravaginal">درون واژینال</option>
+                                <option value="Rectal">درون مقعدی</option>
+                              </optgroup>
                           </select>
                       </div>
+
                       <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-teal-500 transition-colors shadow-sm">
                           <label class="text-[9px] font-bold text-slate-400 uppercase">تکرار (Frequency)</label>
                           <select [(ngModel)]="frequency" class="w-full bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none">
@@ -276,6 +293,23 @@ interface PrescriptionItem {
                           </select>
                       </div>
                    </div>
+
+                   <!-- Pharmaceutical Form Selection (New) -->
+                   @if (drugForms().length > 0) {
+                       <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-teal-500 transition-colors shadow-sm animate-fade-in">
+                           <label class="text-[9px] font-bold text-slate-400 uppercase">شکل دارویی (Pharmaceutical Form)</label>
+                           <select 
+                               [ngModel]="selectedForm()" 
+                               (ngModelChange)="onFormSelect($event)" 
+                               class="w-full bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none"
+                           >
+                               <option [ngValue]="null" selected>انتخاب کنید...</option>
+                               @for (form of drugForms(); track form.label) {
+                                   <option [ngValue]="form">{{ form.label }}</option>
+                               }
+                           </select>
+                       </div>
+                   }
 
                    <!-- Calculation Inputs -->
                    <div class="border-t-2 border-dashed border-slate-100 dark:border-slate-700/50 pt-4 grid grid-cols-1 gap-3 relative">
@@ -294,20 +328,41 @@ interface PrescriptionItem {
                         <input [(ngModel)]="dosageRate" type="number" class="w-full bg-transparent font-mono text-lg font-bold text-slate-800 dark:text-slate-100 focus:outline-none placeholder-slate-300">
                       </div>
                       <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-teal-500 transition-colors shadow-sm">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase">غلظت (mg/ml)</label>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase">
+                           @if (route() === 'Tablet') { غلظت (mg/tab) }
+                           @else if (route() === 'Ointment') { غلظت (mg/g) }
+                           @else { غلظت (mg/ml) }
+                        </label>
                         <input [(ngModel)]="concentration" type="number" class="w-full bg-transparent font-mono text-lg font-bold text-slate-800 dark:text-slate-100 focus:outline-none placeholder-slate-300">
                       </div>
                    </div>
 
                    <!-- Result Box & Add Button -->
                    <div class="flex items-stretch gap-3 mt-2">
-                        <div class="bg-teal-600 text-white rounded-3xl p-6 text-center relative overflow-hidden shadow-lg shadow-teal-600/30 flex-1 flex flex-col justify-center">
+                        <div class="bg-teal-600 text-white rounded-3xl p-6 text-center relative overflow-hidden shadow-lg shadow-teal-600/30 flex-1 flex flex-col justify-center gap-1">
                             <div class="absolute -right-10 -top-10 w-32 h-32 bg-white/10 rounded-full"></div>
-                            <span class="block text-sm font-medium opacity-80 mb-1">حجم تزریقی</span>
-                            <!-- Updated: ml unit moved to the right (first child in RTL) -->
+                            
+                            <!-- Dynamic Label -->
+                            <span class="block text-sm font-medium opacity-80 mb-0.5">
+                               @if (route() === 'Tablet') { تعداد قرص }
+                               @else if (route() === 'Syrup') { حجم شربت }
+                               @else if (route() === 'Ointment') { مقدار پماد }
+                               @else { حجم تزریقی }
+                            </span>
+
+                            <!-- Updated: Unit logic -->
                             <div class="flex items-baseline justify-center gap-1" dir="rtl">
-                                <span class="text-lg opacity-80">ml</span>
+                                <span class="text-lg opacity-80">
+                                   @if (route() === 'Tablet') { عدد }
+                                   @else if (route() === 'Ointment') { گرم }
+                                   @else { ml }
+                                </span>
                                 <span class="text-4xl font-black font-mono tracking-wider">{{ calculateDrugDose() }}</span>
+                            </div>
+
+                            <!-- Total Dose Display -->
+                            <div class="text-[10px] opacity-70 font-bold bg-black/20 rounded-full px-2 py-0.5 mx-auto mt-1 inline-block">
+                               {{ (weightInput() * dosageRate()).toFixed(0) }} میلی‌گرم دارو
                             </div>
                         </div>
                         
@@ -338,8 +393,7 @@ interface PrescriptionItem {
                                        <h4 class="font-bold text-slate-800 dark:text-slate-100 text-base mb-1">{{ item.drugName }}</h4>
                                        <div class="flex flex-wrap gap-x-4 gap-y-2 text-xs text-slate-500 dark:text-slate-400">
                                            <span><strong class="text-slate-700 dark:text-slate-300">دوز:</strong> {{ item.dosage }} mg/kg</span>
-                                           <span><strong class="text-slate-700 dark:text-slate-300">وزن:</strong> {{ item.weight }} kg</span>
-                                           <span><strong class="text-slate-700 dark:text-slate-300">حجم:</strong> <span class="font-mono font-bold text-teal-600 dark:text-teal-400 text-sm">{{ item.volume }} ml</span></span>
+                                           <span><strong class="text-slate-700 dark:text-slate-300">مقدار:</strong> <span class="font-mono font-bold text-teal-600 dark:text-teal-400 text-sm">{{ item.volume }} {{ item.unit }}</span></span>
                                            <span class="bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded text-[10px] font-bold">{{ item.route }}</span>
                                            <span class="bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded text-[10px] font-bold">{{ item.frequency }}</span>
                                        </div>
@@ -402,7 +456,7 @@ interface PrescriptionItem {
                         <th class="py-2">غلظت</th>
                         <th class="py-2">روش مصرف</th>
                         <th class="py-2">تکرار</th>
-                        <th class="py-2 text-left">حجم تزریقی</th>
+                        <th class="py-2 text-left">مقدار مصرف</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -410,10 +464,10 @@ interface PrescriptionItem {
                         <tr class="border-b border-gray-200">
                             <td class="py-3 font-bold">{{ item.drugName }}</td>
                             <td class="py-3">{{ item.dosage }} mg/kg</td>
-                            <td class="py-3 dir-ltr text-right">{{ item.concentration }} mg/ml</td>
+                            <td class="py-3 dir-ltr text-right">{{ item.concentration }}</td>
                             <td class="py-3">{{ item.route }}</td>
                             <td class="py-3">{{ item.frequency }}</td>
-                            <td class="py-3 font-bold font-mono text-left text-lg">{{ item.volume }} ml</td>
+                            <td class="py-3 font-bold font-mono text-left text-lg">{{ item.volume }} {{ item.unit }}</td>
                         </tr>
                     }
                 </tbody>
@@ -461,6 +515,10 @@ export class CalculatorsComponent {
   searchDrugQuery = signal<string>('');
   drugSearchResults = signal<DrugEntry[]>([]);
   selectedDrugId = signal<string | null>(null);
+
+  // New: Drug Forms
+  drugForms = signal<DrugForm[]>([]);
+  selectedForm = signal<DrugForm | null>(null);
 
   // Additional Fields
   frequency = signal<string>('q24h (روزانه)');
@@ -542,19 +600,27 @@ export class CalculatorsComponent {
       this.selectedDrugId.set(drug.id);
       this.drugSearchResults.set([]);
       
+      // Load forms
+      this.drugForms.set(drug.forms);
+      this.selectedForm.set(null); // Reset selected form
+
       const patientSpecies = this.store.currentPatient()?.species || 'dog';
+      // Auto-select first form if available and valid? No, let user choose.
       if (drug.forms && drug.forms.length > 0) {
-          this.concentration.set(drug.forms[0].concentration);
+          // If a form is selected later, we update concentration.
+          // Default logic from before:
+          if (drug.forms[0].concentration > 0) {
+             this.concentration.set(drug.forms[0].concentration);
+          }
           if (drug.forms[0].routes && drug.forms[0].routes.length > 0) {
               this.route.set(drug.forms[0].routes[0]);
           }
       }
+      
       const doseInfo = drug.speciesDosage[patientSpecies];
       if (doseInfo) {
           this.dosageRate.set(doseInfo.avg);
-          // Set frequency from database if available, else default
           if (doseInfo.freq) {
-             // Map simple freq to readable freq if possible, or just append
              this.frequency.set(doseInfo.freq);
           }
       } else {
@@ -562,10 +628,26 @@ export class CalculatorsComponent {
       }
   }
 
+  onFormSelect(form: DrugForm | null) {
+      this.selectedForm.set(form);
+      if (form) {
+          // Update concentration if it is set in the form
+          if (form.concentration > 0) {
+             this.concentration.set(form.concentration);
+          }
+          // Update route if applicable
+          if (form.routes && form.routes.length > 0) {
+              this.route.set(form.routes[0]);
+          }
+      }
+  }
+
   clearSearch() {
       this.searchDrugQuery.set('');
       this.drugSearchResults.set([]);
       this.selectedDrugId.set(null);
+      this.drugForms.set([]);
+      this.selectedForm.set(null);
       this.dosageRate.set(0);
       this.concentration.set(0);
   }
@@ -587,13 +669,19 @@ export class CalculatorsComponent {
         return;
     }
 
+    // Determine unit
+    let currentUnit = 'ml';
+    if (this.route() === 'Tablet') currentUnit = 'عدد';
+    else if (this.route() === 'Ointment') currentUnit = 'گرم';
+
     const newItem: PrescriptionItem = {
         id: Date.now().toString(),
-        drugName: this.searchDrugQuery(),
+        drugName: this.searchDrugQuery() + (this.selectedForm() ? ` (${this.selectedForm()?.label})` : ''),
         dosage: this.dosageRate(),
         concentration: this.concentration(),
         weight: this.weightInput(),
         volume: this.calculateDrugDose(),
+        unit: currentUnit,
         route: this.route(),
         frequency: this.frequency(),
         instructions: ''
