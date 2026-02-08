@@ -396,13 +396,13 @@ export class HomeComponent {
 
   speciesList = [
     { id: 'dog', label: 'سگ', icon: 'https://i.postimg.cc/Yj969KH4/dog.png' },
-    { id: 'cat', label: 'گربه', icon: 'fa-solid fa-cat' },
-    { id: 'bird', label: 'پرندگان', icon: 'fa-solid fa-dove' },
-    { id: 'rodent', label: 'جوندگان', icon: 'fa-solid fa-otter' },
-    { id: 'reptile', label: 'خزندگان', icon: 'fa-solid fa-staff-snake' },
-    { id: 'horse', label: 'اسب', icon: 'fa-solid fa-horse' },
-    { id: 'small_ruminant', label: 'گوسفند/بز', icon: 'fa-solid fa-paw' },
-    { id: 'cow', label: 'گاو', icon: 'fa-solid fa-cow' },
+    { id: 'cat', label: 'گربه', icon: 'https://i.postimg.cc/xNcMFH50/cat.png' },
+    { id: 'bird', label: 'پرندگان', icon: 'https://i.postimg.cc/D48LYs6F/birds.png' },
+    { id: 'rodent', label: 'جوندگان', icon: 'https://i.postimg.cc/0rQYQRsG/rabbit.png' },
+    { id: 'reptile', label: 'خزندگان', icon: 'https://i.postimg.cc/V56q6Q84/turtle.png' },
+    { id: 'horse', label: 'اسب', icon: 'https://i.postimg.cc/7Jf0Q79q/horse.png' },
+    { id: 'small_ruminant', label: 'گوسفند/بز', icon: 'https://i.postimg.cc/5j0B0dVv/lamp.png' },
+    { id: 'cow', label: 'گاو', icon: 'https://i.postimg.cc/8s5R5QSB/cow.png' },
   ];
   
   constructor() {
